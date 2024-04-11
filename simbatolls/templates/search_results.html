@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results for {{ search_query }}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5 text-center">
+        <img src="{{ url_for('static', filename='assets/images/brand/simba.png') }}" alt="Simba Logo" class="img-fluid mb-3" style="max-width: 200px;">
+        <h2>Search Results for: {{ search_query }}</h2>
+        
+        <!-- Search Bar -->
+        <form action="{{ url_for('search') }}" method="POST" class="input-group mb-3">
+            <input type="text" name="search_query" class="form-control" placeholder="Search Contract Number" aria-label="Search Contract Number" aria-describedby="button-search">
+            <div class="input-group-append">
+                <button class="btn btn-primary" type="submit" id="button-search">Search</button>
+            </div>
+        </form>
+        
+        <!-- Summary Record -->
+        <h3>Summary Record</h3>
+        {% if summary_record %}
+            <!-- Copy Button for Summary -->
+            <button class="btn btn-info mb-2" id="copySummaryBtn">Copy Summary Info</button>
+            <div class="table-responsive">
+                <table class="table table-bordered" id="summaryTable">
+                    <thead>
+                        <tr>
+                            <th>Contract Number</th>
+                            <th>Num of Rows</th>
+                            <th>Admin Fee</th>
+                            <th>Toll Cost</th>
+                            <th>Total Toll Contract cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in summary_record %}
+                        <tr>
+                            <td>{{ record['Contract Number'] }}</td>
+                            <td>{{ record['Num of Rows'] }}</td>
+                            <td>{{ record['Admin Fee'] }}</td>
+                            <td>{{ record['Sum of Toll Cost'] }}</td>
+                            <td>{{ record['Total Toll Contract cost'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No summary record found.</p>
+        {% endif %}
+        
+        <!-- Toll Records -->
+        <h3>Toll Records</h3>
+        {% if raw_records %}
+            <!-- Copy Button for Raw Records -->
+            <button class="btn btn-info mb-2" id="copyRawBtn">Copy Raw Table</button>
+            <div class="table-responsive">
+                <table class="table table-bordered" id="rawTable">
+                    <thead>
+                        <tr>
+                            {% for key in raw_records[0].keys() %}
+                                <th>{{ key }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in raw_records %}
+                            <tr>
+                                {% for value in record.values() %}
+                                    <td>{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No raw records found.</p>
+        {% endif %}
+    </div>
+    
+    <script>
+        // Function to copy plain text to clipboard
+        function copyTextToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            console.log('Text copied to clipboard');
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+        });
+    }
+
+    function formatDateTime(dateTimeStr) {
+        // Modify this function if needed to format date-time strings
+        return dateTimeStr.replace(/:\d\d(?=:|$)/g, '');
+    }
+
+    document.getElementById('copySummaryBtn').addEventListener('click', function() {
+        // Assuming there's only one row in the summary table
+        const row = document.querySelector('#summaryTable tbody tr');
+        const contractNumber = row.cells[0].innerText;
+        const numRows = row.cells[1].innerText;
+        const adminFee = row.cells[2].innerText;
+        const tollCost = row.cells[3].innerText;
+        const totalCost = row.cells[4].innerText;
+
+        const sentence = `Contract Number ${contractNumber} has ${numRows} entries. The Admin Fee is ${adminFee}, the Toll Cost is ${tollCost}, and the Total Toll Contract Cost is ${totalCost}.`;
+        copyTextToClipboard(sentence);
+
+        this.textContent = 'Copied'; // Optionally change the button text to 'Copied'
+    });
+
+    document.getElementById('copyRawBtn').addEventListener('click', function() {
+        // Your existing code for copying the raw table
+    });
+    
+        // Function to remove seconds from time strings
+        function formatDateTime(dateTimeStr) {
+            return dateTimeStr.replace(/:\d\d(?=:|$)/g, '');
+        }
+    
+        // Function to format and copy the table content as plain text
+        function copyTableText(tableId) {
+            const table = document.getElementById(tableId);
+            let textToCopy = '';
+            let columnWidths = Array.from(table.rows[0].cells).map(cell => formatDateTime(cell.innerText).length);
+    
+            // Update columnWidths based on the longest content in each column
+            for (const row of table.rows) {
+                Array.from(row.cells).forEach((cell, index) => {
+                    const cellLength = formatDateTime(cell.innerText).length;
+                    if (cellLength > columnWidths[index]) {
+                        columnWidths[index] = cellLength;
+                    }
+                });
+            }
+    
+            // Generate textToCopy with padding for each cell to align columns
+            for (const row of table.rows) {
+                let rowData = Array.from(row.cells).map((cell, index) => 
+                    formatDateTime(cell.innerText).padEnd(columnWidths[index], ' ')
+                );
+                textToCopy += rowData.join('   ') + '\n'; // Adjust spacing as needed
+            }
+    
+            copyTextToClipboard(textToCopy);
+        }
+    
+        // Event listener for the "Copy Raw Table" button
+        document.getElementById('copyRawBtn').addEventListener('click', function() {
+            copyTableText('rawTable');
+            this.textContent = 'Copied'; // Change button text to 'Copied'
+        });
+    
+        // Ensure other parts of your script remain unchanged
+    </script>
+    
+    
+    
+    

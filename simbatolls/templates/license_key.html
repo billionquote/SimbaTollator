@@ -1,0 +1,48 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/animate.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/bootsnav.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/animate.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/owl.theme.default.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/bootsnav.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/responsive.css') }}">
+    
+</head>
+<body>
+    <!-- Preloader and Navigation removed for brevity -->
+
+    <section id="home" class="welcome-hero">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8 col-md-offset-2">
+                    <div class="welcome-hero-txt">
+                        <h2>License Key Validation</h2>
+                        <p>Please enter your license key to proceed.</p>
+                    </div>
+                    <div class="model-search-content">
+                        <form action="{{ url_for('validate_license') }}" method="post" id="license-form">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <input type="text" name="license_key" class="form-control" placeholder="Enter License Key" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="submit" class="welcome-btn model-search-btn">Validate License</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer and Scripts removed for brevity -->
+    <script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <!-- Additional JS Files -->
+</body>
+</html>

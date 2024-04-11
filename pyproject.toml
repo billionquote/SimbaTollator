@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "simbatolls"
+version = "1"
+description = ""
+authors = ["Bardia"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.1"
+flask = "^3.0.3"
+plotly = "^5.20.0"
+numpy = "^1.26.4"
+datetime = "^5.5"
+werkzeug = "^3.0.2"
+openpyxl = "^3.1.2"
+ipykernel = "^6.29.4"
+pandasql = "^0.7.3"
+matplotlib = "^3.8.4"
+pyqt6 = "^6.6.1"
+xlrd = "^2.0.1"
+temp = "^2020.7.2"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
