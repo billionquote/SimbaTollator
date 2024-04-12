@@ -20,6 +20,7 @@ matplotlib = "^3.8.4"
 pyqt6 = "^6.6.1"
 xlrd = "^2.0.1"
 temp = "^2020.7.2"
+gunicorn = "^21.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
