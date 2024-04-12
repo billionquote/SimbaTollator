@@ -123,6 +123,8 @@ def load_dataframes(rcm_df_path, tolls_df_path):
 def populate_summary_table(df):
     # Ensure 'Res.' column is a string and remove any trailing ".0"
     df['Res.'] = df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
+    df['Pickup Date Time'] = pd.to_datetime(df['Pickup Date Time'])
+    df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
     df = df[df['Res.'].notnull()]
     df=df.drop_duplicates()
     # Group by the 'Res.' column and perform aggregations
@@ -136,7 +138,10 @@ def populate_summary_table(df):
     admin_fee_total = (summary['Num_of_Rows'] * 2.95).sum()
     summary['admin_fee'] = summary['Num_of_Rows'] * 2.95
     summary['Total Toll Contract cost'] = summary['admin_fee'] + summary['Sum_of_Toll_Cost']
-
+    
+    summary['Pickup Date Time'] = df['Pickup Date Time'].dt.strftime('%Y-%m-%d %H:%M')
+    summary['Dropoff Date Time'] = df['Dropoff Date Time'].dt.strftime('%Y-%m-%d %H:%M')
+    
     # Round 'Sum of Toll Cost' and 'Total Toll Contract cost' to 2 decimal points
     summary['Sum_of_Toll_Cost'] = summary['Sum_of_Toll_Cost'].round(2)
     summary['Total Toll Contract cost'] = summary['Total Toll Contract cost'].round(2)
@@ -304,42 +309,64 @@ def compact_number_format(value):
 
 app.jinja_env.filters['compact_number'] = compact_number_format
 
+def get_last_5_contracts():
+    try:
+        con = sqlite3.connect(DATABASE)
+        con.row_factory = sqlite3.Row  # Fetch rows as dictionaries
+        cur = con.cursor()
+
+        # Assuming 'Contract Number' is stored as a numerical value and you want the 5 largest values
+        cur.execute("SELECT DISTINCT `Contract Number` FROM summary ORDER BY `Contract Number` DESC LIMIT 5")
+        last_5_contracts = [row['Contract Number'] for row in cur.fetchall()]
+
+        con.close()
+        return last_5_contracts
+    except Exception as e:
+        print("Error fetching last 5 contracts:", e)
+        return []
+
 @app.route('/search', methods=['POST','GET'])
 def search():
-    search_query = request.form.get('search_query')
-    
-    # Connect to the database
-    con = sqlite3.connect(DATABASE)
-    con.row_factory = sqlite3.Row  # This ensures rows are fetched as dictionary-like objects
-    
-    # Fetch summary record for the contract
-    summary_cursor = con.execute("SELECT * FROM summary WHERE `Contract Number` = ?", (search_query,))
-    summary_record = [dict(row) for row in summary_cursor.fetchall()]
+    last_5_contracts = get_last_5_contracts()
+    if request.method == 'POST':
+        search_query = request.form.get('search_query')
+    else:
+        search_query = request.args.get('search_query', None) 
+    if search_query:
+        # Connect to the database
+        con = sqlite3.connect(DATABASE)
+        con.row_factory = sqlite3.Row  # This ensures rows are fetched as dictionary-like objects
+        
+        # Fetch summary record for the contract
+        summary_cursor = con.execute("SELECT * FROM summary WHERE `Contract Number` = ?", (search_query,))
+        summary_record = [dict(row) for row in summary_cursor.fetchall()]
 
-    # Fetch raw records for the contract with specific columns
-    raw_query = """
-    SELECT distinct "Start Date" as "Toll Date/Time", "Details", "LPN/Tag number", "Vehicle Class", "Trip Cost",
-            "Rego" 
-    FROM rawdata 
-    WHERE "Res." = ?
-    """
-    raw_cursor = con.execute(raw_query, (search_query,))
-    raw_records = [dict(row) for row in raw_cursor.fetchall()]
-    
-    # Formatting 'Trip Cost' to include a dollar sign
-    for record in raw_records:
-        # Ensure Trip Cost is a float before formatting, this is a safeguard.
-        try:
-            record['Trip Cost'] = f"${float(record['Trip Cost']):,.2f}"
-        except ValueError:
-            # In case 'Trip Cost' is not a valid float, keep it as is or handle appropriately.
-            pass
-    
-    con.close()
+        # Fetch raw records for the contract with specific columns
+        raw_query = """
+        SELECT distinct "Start Date" as "Toll Date/Time", "Details", "LPN/Tag number", "Vehicle Class", "Trip Cost",
+                "Rego" 
+        FROM rawdata 
+        WHERE "Res." = ?
+        """
+        raw_cursor = con.execute(raw_query, (search_query,))
+        raw_records = [dict(row) for row in raw_cursor.fetchall()]
+        
+        # Formatting 'Trip Cost' to include a dollar sign
+        for record in raw_records:
+            # Ensure Trip Cost is a float before formatting, this is a safeguard.
+            try:
+                record['Trip Cost'] = f"${float(record['Trip Cost']):,.2f}"
+            except ValueError:
+                # In case 'Trip Cost' is not a valid float, keep it as is or handle appropriately.
+                pass
+        
+        con.close()
 
-    # Pass the converted records to your template
-    return render_template('search_results.html', summary_record=summary_record, raw_records=raw_records, search_query=search_query)
-
+        # Pass the converted records to your template
+        return render_template('search_results.html', summary_record=summary_record, raw_records=raw_records, search_query=search_query, last_5_contracts=last_5_contracts)
+    else:
+        # Initial page load, no search performed
+        return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
 
 
 if __name__ == '__main__':

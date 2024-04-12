@@ -87,6 +87,32 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        #mainNavbar {
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,.1);
+            background-color: #283890 !important; /* Ensures background color is applied */
+        }
+        .navbar-brand img {
+            max-height: 40px; /* Adjust based on your logo */
+        }
+        .navbar-nav .nav-link {
+            color: white !important;
+            transition: color 0.3s ease-in-out;
+        }
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link:focus {
+            color: #a8a8ff !important; /* Lighter shade for hover/focus */
+        }
+        .navbar-nav .nav-item.active .nav-link {
+            color: #ccccff !important; /* Even lighter shade for active link */
+        }
+    </style>
+
     <script>
         $(document).ready(function() {
             $('#mainNavbar').show(); // Ensure navbar is shown on page load
@@ -94,18 +120,30 @@
     </script>
 </head>
 <body>
-    <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom">
-        <a class="navbar-brand" href="/">Simba Toll-a-Tor</a>
+
+    <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <a class="navbar-brand" href="/">
+            <img src="{{ url_for('static', filename='assets/logo/simba.jpeg') }}" alt="Simba Toll-a-Tor">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
             <div class="navbar-nav">
-                <a class="nav-item nav-link active" href="/">Upload Files</a>
+                <a class="nav-item nav-link" href="/">Upload Files</a>
                 <a class="nav-item nav-link" href="/search">Search Results</a>
             </div>
         </div>
     </nav>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    
     <div class="container mt-4 text-center">
-        <img src="{{ url_for('static', filename='assets/images/brand/simba.png') }}" alt="Simba Logo" class="img-fluid mb-3" style="max-width: 200px; margin-top: 50px">
-        <h1 class="text-center mb-4">Summary Table</h1>
+        <img src="{{ url_for('static', filename='assets/images/brand/simba.png') }}" alt="Simba Logo" class="img-fluid mb-3" style="max-width: 200px; margin-top: 150px">
+        
         <!-- Include this section above your search area in summary.html -->
         <div class="container dashboard-container">
             <div class="row">
@@ -155,7 +193,9 @@
                 <thead class="thead-dark">
                     <tr>
                         <th>Contract Number</th>
-                        <th>Num of Rows</th>
+                        <th>Pickup Date Time</th>
+                        <th>Dropoff Date Time</th>
+                        <th>Num of Tolls Used</th>
                         <th>Admin Fee</th>
                         <th>Sum of Toll Cost</th>
                         <th>Total Contract Toll Cost</th>
@@ -165,7 +205,9 @@
                     <!-- Populate summary table rows dynamically -->
                     {% for row in summary %}
                         <tr>
-                            <td>{{ row['Contract Number'] }}</td>
+                            <td><a href="{{ url_for('search', search_query=row['Contract Number']) }}" class="link-primary">{{ row['Contract Number'] }}</a></td>
+                            <td>{{ row['Pickup Date Time'] }}</td>
+                            <td>{{ row['Dropoff Date Time'] }}</td>
                             <td>{{ row['Num of Rows'] }}</td>
                             <td>{{ row['Admin Fee'] }}</td>
                             <td>{{ row['Sum of Toll Cost'] }}</td>

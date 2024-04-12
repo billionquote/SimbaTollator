@@ -62,6 +62,30 @@
             $('#mainNavbar').hide(); // Ensure navbar is hidden on page load
         });
     </script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        #mainNavbar {
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,.1);
+            background-color: #283890 !important; /* Ensures background color is applied */
+        }
+        .navbar-brand img {
+            max-height: 40px; /* Adjust based on your logo */
+        }
+        .navbar-nav .nav-link {
+            color: white !important;
+            transition: color 0.3s ease-in-out;
+        }
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link:focus {
+            color: #a8a8ff !important; /* Lighter shade for hover/focus */
+        }
+        .navbar-nav .nav-item.active .nav-link {
+            color: #ccccff !important; /* Even lighter shade for active link */
+        }
+    </style>
 </head>
 <body>
 
@@ -70,19 +94,29 @@
     Your browser does not support HTML5 video.
 </video>
 
-<nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom">
-    <a class="navbar-brand" href="/">Simba Toll-a-Tor</a>
+<nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <a class="navbar-brand" href="/">
+        <img src="{{ url_for('static', filename='assets/logo/simba.jpeg') }}" alt="Simba Toll-a-Tor">
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
         <div class="navbar-nav">
             <a class="nav-item nav-link" href="/summary">Summary</a>
-            <a class="nav-item nav-link" href="/search">Search Contracts</a>
+            <a class="nav-item nav-link" href="/search">Search Results</a>
         </div>
     </div>
 </nav>
 
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+
 <div class="container-custom">
     <div class="text-center">
-        <img src="{{ url_for('static', filename='assets/images/brand/simba.png') }}" alt="Simba Logo" class="img-fluid mb-3">
+        <img src="{{ url_for('static', filename='assets/images/brand/simba.png') }}" alt="Simba Logo" class="img-fluid mb-3" style="margin-top: 120px;" >
         <form id="license-form">
             <input type="text" class="form-control mb-2" id="username"  name="username"  placeholder="Enter Username">
             <input type="password" class="form-control mb-2" id="password" placeholder="Enter Password">
