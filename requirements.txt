@@ -48,8 +48,7 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 pyzmq==25.1.2
 setuptools==69.2.0
--e git+https://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:x-oauth-basic@github.com/BardiaAlavi/SimbaTollator.git@master
-
+-e git+https://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:x-oauth-basic@github.com/BardiaAlavi/SimbaTollator.git@77b193517c2a75c5b4182845cd9f1e278c650638#egg=simbatolls
 six==1.16.0
 SQLAlchemy==2.0.29
 stack-data==0.6.3
