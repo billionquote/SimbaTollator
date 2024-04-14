@@ -61,6 +61,7 @@ def upload_file():
         pass  # Handle the case where conversion to int is not possible
     rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
     rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+    rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
     rcm_df = rcm_df.drop_duplicates()
     
     # Process Toll File
@@ -163,7 +164,7 @@ def populate_summary_table(df):
 def create_rawdata_table(result_df, conn):
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
-    #c.execute("DROP TABLE IF EXISTS rawdata")
+    c.execute("DROP TABLE IF EXISTS rawdata")
     # Basic type mapping, extend this based on your actual data types
     type_mapping = {
         'int64': 'INTEGER',

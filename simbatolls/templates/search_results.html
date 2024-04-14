@@ -146,6 +146,12 @@
         }
         
         /* Additional custom styles */
+        .contract-number {
+            font-weight: bold; /* Makes the number stand out */
+            color: #007bff; /* Bootstrap primary color, or choose your own */
+            padding-left: 10px;
+        }
+        
     </style>
     
     
@@ -198,7 +204,10 @@
        
     {% if search_query is not none and search_query|length > 0 %}
         {% if summary_record %}
-            <h3>Summary Record</h3>
+            
+            <h3>Summary Record: <span class="contract-number">{{ search_query }}</span></h3>
+        
+
             <!-- Copy Button for Summary -->
             <button class="btn btn-primary mb-2" id="copySummaryBtn">Copy Summary Info</button>
             <div class="table-responsive">
@@ -285,12 +294,14 @@
         // Assuming there's only one row in the summary table
         const row = document.querySelector('#summaryTable tbody tr');
         const contractNumber = row.cells[0].innerText;
-        const numRows = row.cells[1].innerText;
-        const adminFee = row.cells[2].innerText;
-        const tollCost = row.cells[3].innerText;
-        const totalCost = row.cells[4].innerText;
+        const pickUp = row.cells[1].innerText;
+        const dropOff = row.cells[2].innerText;
+        const rowNum = row.cells[3].innerText;
+        const adminFee = row.cells[4].innerText;
+        const tollCost = row.cells[5].innerText;
+        const totalCost = row.cells[6].innerText;
 
-        const sentence = `Contract Number ${contractNumber} has ${numRows} entries. The Admin Fee is ${adminFee}, the Toll Cost is ${tollCost}, and the Total Toll Contract Cost is ${totalCost}.`;
+        const sentence = `Contract Number ${contractNumber} was picked up on ${pickUp} and returned on ${dropOff}. A total of ${rowNum} toll(s) were used. The Admin Fee is ${adminFee}, the Toll Cost is ${tollCost}, and the Total Toll Contract Cost is ${totalCost}.`;
         copyTextToClipboard(sentence);
 
         this.textContent = 'Copied'; // Optionally change the button text to 'Copied'
