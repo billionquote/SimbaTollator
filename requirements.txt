@@ -48,7 +48,7 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 pyzmq==25.1.2
 setuptools==69.2.0
--e git+https://github.com/BardiaAlavi/SimbaTollator.git@4594119174681fcf09c8de29181e7f4694019b0d#egg=simbatolls
+-e git+https://github.com/BardiaAlavi/SimbaTollator.git@6f94bd447d5d8a2768c1cf26b1a033530824728d#egg=simbatolls
 six==1.16.0
 SQLAlchemy==2.0.29
 stack-data==0.6.3
