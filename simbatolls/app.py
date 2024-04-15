@@ -9,6 +9,7 @@ import sqlite3
 import tempfile
 from flask import current_app as app
 
+
 app = Flask(__name__, template_folder='templates')
 
 app.secret_key = 'your_secret_key'
@@ -20,22 +21,64 @@ ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 def home():
     return render_template('home.html')
 
-@app.route('/validate', methods=['POST'])
-def validate_license():
-    username = 'bz@simbacarhire.com.au'
-    password = 'bzsimba1990'
+#login fixes 
+from flask_login import login_user, LoginManager
+from flask_bcrypt import Bcrypt
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from flask_login import login_required
 
-    username_r = request.form.get('username')
-    password_r = request.form.get('password')
-    print(f'username: {username_r} and password:{password_r}' )
-    if username_r == username and password_r == password:
-        return jsonify({'status': 'valid'})
-    else:
-        return jsonify({'status': 'invalid'}), 400
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///your_database.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+# Initialize LoginManager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'validate'
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+
+    def __repr__(self):
+        return f"User('{self.username}')" 
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+#end of login fixxes 
+
+
+
+@app.route('/validate', methods=['GET', 'POST'])  # Changed from /login to /validate
+def validate_license():
+    if request.method == 'POST':
+        username_r = request.form.get('username')
+        password_r = request.form.get('password')
+
+        if not username_r or not password_r:
+            return jsonify({'status': 'invalid', 'message': 'Username or password not provided'}), 400
+
+        user = User.query.filter_by(username=username_r).first()
+        if user:
+            if bcrypt.check_password_hash(user.password_hash, password_r):
+                login_user(user, remember=True)
+                return redirect(url_for('home'))
+            else:
+                return jsonify({'status': 'invalid', 'message': 'Password is incorrect'}), 401
+        else:
+            return jsonify({'status': 'invalid', 'message': 'Username does not exist'}), 404
+
+    return render_template('login.html')
 
 
 
 @app.route('/upload', methods=['POST','GET'])
+@login_required
 def upload_file():
     # Ensure there are files in the request
     if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
@@ -164,7 +207,7 @@ def populate_summary_table(df):
 def create_rawdata_table(result_df, conn):
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
-    c.execute("DROP TABLE IF EXISTS rawdata")
+    #c.execute("DROP TABLE IF EXISTS rawdata")
     # Basic type mapping, extend this based on your actual data types
     type_mapping = {
         'int64': 'INTEGER',
@@ -186,6 +229,7 @@ def create_rawdata_table(result_df, conn):
     conn.close()
 
 @app.route('/confirm-upload', methods=['POST'])
+@login_required
 def confirm_upload():
     rcm_df_path = session.get('rcm_df_path')
     tolls_df_path = session.get('tolls_df_path')
@@ -275,6 +319,7 @@ def fetch_summary_data():
 
 
 @app.route('/summary')
+@login_required
 def summary():
     # Fetch summary data from the database
     summary_data = fetch_summary_data()
@@ -327,6 +372,7 @@ def get_last_5_contracts():
         return []
 
 @app.route('/search', methods=['POST','GET'])
+@login_required
 def search():
     last_5_contracts = get_last_5_contracts()
     if request.method == 'POST':

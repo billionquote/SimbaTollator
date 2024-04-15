@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simba Toll-a-Tor</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Custom styles here -->
+    <style>
+        /* Your existing styles */
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <video autoplay muted loop class="bg-video">
+        <source src="{{ url_for('static', filename='assets/videos/simba.mp4') }}" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+
+    <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom">
+        <!-- Navbar content -->
+    </nav>
+
+    <div class="container-custom">
+        <div class="text-center">
+            <form id="license-form" method="post">
+                <input type="text" class="form-control mb-2" id="username" name="username" placeholder="Enter Username">
+                <input type="password" class="form-control mb-2" id="password" name="password" placeholder="Enter Password">
+                <button type="button" class="btn btn-primary" onclick="validateLicense()">Log in</button>
+            </form>
+            <!-- Additional form and div elements as needed -->
+        </div>
+    </div>
+
+    <script>
+        function validateLicense() {
+            var username = $('#username').val();
+            var password = $('#password').val();
+            
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('validate_license') }}", // Flask url_for
+                data: {
+                    username: username,
+                    password: password
+                },
+                success: function(response) {
+                    if (response.status == 'valid') {
+                        window.location.href = "{{ url_for('home') }}"; // Redirect on successful login
+                    } else {
+                        alert("Invalid Username or Password.");
+                    }
+                },
+                error: function() {
+                    alert("Login failed. Please try again.");
+                }
+            });
+        }
+    </script>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
