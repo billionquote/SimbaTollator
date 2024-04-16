@@ -28,6 +28,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from flask_login import login_required
 
+#adding postgre
+
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///your_database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -196,7 +198,7 @@ def populate_summary_table(df):
     summary['Total Toll Contract cost'] = '$' + summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
 
     # Drop the 'admin_fee' column as it's now redundant
-    summary.drop(columns=['admin_fee'], inplace=True)
+    #summary.drop(columns=['admin_fee'], inplace=True)
 
     # Rename the columns for clarity
     summary.rename(columns={'Res.': 'Contract Number', 'Num_of_Rows': 'Num of Rows'}, inplace=True)
@@ -274,29 +276,31 @@ def update_or_insert_summary(conn, summary):
     cursor = conn.cursor()
     for index, row in summary.iterrows():
         # Check if record exists
-        cursor.execute("SELECT * FROM summary WHERE `Contract Number` = ?", (row['Contract Number'],))
+        cursor.execute("SELECT * FROM summary WHERE \"Contract Number\" = ?", (row['Contract Number'],))
         existing = cursor.fetchone()
         if existing:
             # Update existing record
             cursor.execute("""
                 UPDATE summary SET
-                `Num of Rows` = ?,
-                `Sum of Toll Cost` = ?,
-                `Total Toll Contract cost` = ?,
-                `Pickup Date Time` = ?,
-                `Dropoff Date Time` = ?
-                WHERE `Contract Number` = ?
+                "Num of Rows" = ?,
+                "Sum of Toll Cost" = ?,
+                "Total Toll Contract cost" = ?,
+                "Pickup Date Time" = ?,
+                "Dropoff Date Time" = ?,
+                "Admin Fee" = ?
+                WHERE "Contract Number" = ?
             """, (row['Num of Rows'], row['Sum of Toll Cost'], row['Total Toll Contract cost'],
-                  row['Pickup Date Time'], row['Dropoff Date Time'], row['Contract Number']))
+                  row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee'], row['Contract Number']))
         else:
             # Insert new record
             cursor.execute("""
-                INSERT INTO summary (`Contract Number`, `Num of Rows`, `Sum of Toll Cost`, 
-                                     `Total Toll Contract cost`, `Pickup Date Time`, `Dropoff Date Time`)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO summary ("Contract Number", "Num of Rows", "Sum of Toll Cost", 
+                                     "Total Toll Contract cost", "Pickup Date Time", "Dropoff Date Time", "Admin Fee")
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (row['Contract Number'], row['Num of Rows'], row['Sum of Toll Cost'],
-                  row['Total Toll Contract cost'], row['Pickup Date Time'], row['Dropoff Date Time']))
+                  row['Total Toll Contract cost'], row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee']))
     conn.commit()
+
 
 
 
@@ -306,7 +310,8 @@ def fetch_summary_data():
         con.row_factory = sqlite3.Row  # This makes rows fetch as dictionaries
         cur = con.cursor()
 
-        cur.execute("SELECT * FROM summary order by 'Contract Number' DESC")
+        # Correct the ORDER BY clause by removing the single quotes around the column name
+        cur.execute("SELECT * FROM summary ORDER BY \"Contract Number\" DESC")
         summary_data = [dict(row) for row in cur.fetchall()]
 
         con.close()

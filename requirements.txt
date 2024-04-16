@@ -42,6 +42,7 @@ platformdirs==4.2.0
 plotly==5.20.0
 prompt-toolkit==3.0.43
 psutil==5.9.8
+psycopg2-binary==2.9.9
 ptyprocess==0.7.0
 pure-eval==0.2.2
 Pygments==2.17.2
@@ -53,7 +54,7 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 pyzmq==25.1.2
 setuptools==69.2.0
--e git+https://github.com/BardiaAlavi/SimbaTollator.git@c9946ef8eb6eeae682b5a8109e58d58f4d010883#egg=simbatolls
+-e git+https://github.com/BardiaAlavi/SimbaTollator.git@94e9e0a1ba4b6210f6a187e6dd2f30a53c02773d#egg=simbatolls
 six==1.16.0
 SQLAlchemy==2.0.29
 stack-data==0.6.3
