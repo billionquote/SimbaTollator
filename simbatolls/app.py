@@ -201,7 +201,10 @@ def populate_summary_table(df):
     # Rename the columns for clarity
     summary.rename(columns={'Res.': 'Contract Number', 'Num_of_Rows': 'Num of Rows'}, inplace=True)
         # Order by 'Contract Number'
+    # Ensure that 'Contract Number' is treated as an integer for proper sorting
+    summary['Contract Number'] = summary['Contract Number'].astype(int)
     summary = summary.sort_values(by='Contract Number', ascending=False)
+    
     return summary, grand_total, admin_fee_total
 
 def create_rawdata_table(result_df, conn):
@@ -227,7 +230,6 @@ def create_rawdata_table(result_df, conn):
     c.execute(create_table_sql)
     conn.commit()
     conn.close()
-
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
 def confirm_upload():
@@ -239,76 +241,72 @@ def confirm_upload():
 
     # Load DataFrames from stored paths
     rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
-    # Check if '99' is in 'Res.' column of rcm_df
-    contract_numbers=rcm_df['Res.'].astype(str).tolist()
-    #print(f'print contract numbers: {contract_numbers}')
-    #contract_numbers=pd.DataFrame(contract_numbers)
-    #contract_numbers.to_csv('contract_numbers.csv')
-    #if '99' in rcm_df['Res.'].astype(str).tolist():
-        #print("Contract '99' found in rcm_df")
+
     # SQL Query to join rcm_df and tolls_df
     query = """
         SELECT DISTINCT * 
         FROM tolls_df
-        inner JOIN rcm_df 
+        INNER JOIN rcm_df 
         ON tolls_df.[LPN/Tag number] = rcm_df.[Vehicle]
         WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
     """
+    result_df = ps.sqldf(query, locals())
+    result_df.drop_duplicates(inplace=True)
 
     try:
-        # Execute SQL Query
-        result_df = ps.sqldf(query, locals())
-        result_df = result_df.drop_duplicates()
-        print(tolls_df.columns)
-        #print(f'Initial query executed {result_df.head(4)}')
+        with sqlite3.connect(DATABASE) as conn:
+            # Ensure the rawdata table exists and add new raw data
+            create_rawdata_table(result_df, conn)
+            result_df.to_sql('rawdata', conn, if_exists='append', index=False)
 
+            # Update or insert summary data
+            summary, grand_total, admin_fee_total = populate_summary_table(result_df)
+            update_or_insert_summary(conn, summary)
     except Exception as e:
-        print(e)  # Log the actual error for debugging
-        return jsonify({'error': 'Failed to execute SQL query', 'details': str(e)}), 400
-
-    con = None
-    try:
-        # Create rawdata table if it doesn't exist - Corrected
-        con = sqlite3.connect(DATABASE)
-        create_rawdata_table(result_df, con)  # Assuming a corrected version is provided
-        result_df=result_df.drop_duplicates()
-        # Insert result_df into rawdata table
-        result_df.to_sql('rawdata', con, if_exists='append', index=False)
-        
-    except Exception as e:
-        print(e)  # Log the actual error for debugging
-        return jsonify({'error': 'Failed to save results to database', 'details': str(e)}), 400
+        return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
     finally:
-        if con:
-            con.close()
-    # Create summary table
-    summary, grand_total, admin_fee_total = populate_summary_table(result_df)
-    #print(f'Summary:{summary.head(10)}')
-    try:
-        con = sqlite3.connect(DATABASE)
-        #c = con.cursor()
-        #c.execute("DELETE FROM summary")
-        #con.commit()
-        #print("Summary table has been reset.")
-        summary=summary.drop_duplicates()
-        summary.to_sql('summary', con, if_exists='replace', index=False)
-    except Exception as e:
-        return jsonify({'error': 'Failed to save summary table to database', 'details': str(e)}), 400
-    finally:
-        if con:
-            con.close()
-    summary_table_html = summary.to_html(index=False)
-    session.pop('rcm_df_path', None)
-    session.pop('tolls_df_path', None)
+        session.pop('rcm_df_path', None)
+        session.pop('tolls_df_path', None)
 
     return redirect(url_for('summary'))
+
+def update_or_insert_summary(conn, summary):
+    cursor = conn.cursor()
+    for index, row in summary.iterrows():
+        # Check if record exists
+        cursor.execute("SELECT * FROM summary WHERE `Contract Number` = ?", (row['Contract Number'],))
+        existing = cursor.fetchone()
+        if existing:
+            # Update existing record
+            cursor.execute("""
+                UPDATE summary SET
+                `Num of Rows` = ?,
+                `Sum of Toll Cost` = ?,
+                `Total Toll Contract cost` = ?,
+                `Pickup Date Time` = ?,
+                `Dropoff Date Time` = ?
+                WHERE `Contract Number` = ?
+            """, (row['Num of Rows'], row['Sum of Toll Cost'], row['Total Toll Contract cost'],
+                  row['Pickup Date Time'], row['Dropoff Date Time'], row['Contract Number']))
+        else:
+            # Insert new record
+            cursor.execute("""
+                INSERT INTO summary (`Contract Number`, `Num of Rows`, `Sum of Toll Cost`, 
+                                     `Total Toll Contract cost`, `Pickup Date Time`, `Dropoff Date Time`)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (row['Contract Number'], row['Num of Rows'], row['Sum of Toll Cost'],
+                  row['Total Toll Contract cost'], row['Pickup Date Time'], row['Dropoff Date Time']))
+    conn.commit()
+
+
+
 def fetch_summary_data():
     try:
         con = sqlite3.connect(DATABASE)
         con.row_factory = sqlite3.Row  # This makes rows fetch as dictionaries
         cur = con.cursor()
 
-        cur.execute("SELECT * FROM summary")
+        cur.execute("SELECT * FROM summary order by 'Contract Number' DESC")
         summary_data = [dict(row) for row in cur.fetchall()]
 
         con.close()
@@ -325,9 +323,9 @@ def summary():
     summary_data = fetch_summary_data()
 
     # Calculate totals
-    total_admin_fee = sum(float(row['Admin Fee'].strip('$').replace(',', '')) for row in summary_data)
-    total_sum_of_toll_cost = sum(float(row['Sum of Toll Cost'].strip('$').replace(',', '')) for row in summary_data)
-    total_contract_toll_cost = sum(float(row['Total Toll Contract cost'].strip('$').replace(',', '')) for row in summary_data)
+    total_admin_fee = sum(float(row['Admin Fee'].strip('$').replace(',', '')) if row['Admin Fee'] else 0 for row in summary_data)
+    total_sum_of_toll_cost = sum(float(row['Sum of Toll Cost'].strip('$').replace(',', '')) if row['Sum of Toll Cost'] else 0 for row in summary_data)
+    total_contract_toll_cost = sum(float(row['Total Toll Contract cost'].strip('$').replace(',', '')) if row['Total Toll Contract cost'] else 0 for row in summary_data)
 
     if summary_data:
         app.logger.info("Summary data fetched successfully: %s", summary_data)
@@ -338,6 +336,7 @@ def summary():
     return render_template('summary.html', summary=summary_data, total_admin_fee=total_admin_fee,
                            total_sum_of_toll_cost=total_sum_of_toll_cost,
                            total_contract_toll_cost=total_contract_toll_cost)
+
 
 # Define a custom filter
 @app.template_filter('compact_number')
