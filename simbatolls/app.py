@@ -29,8 +29,8 @@ from flask_login import UserMixin
 from flask_login import login_required
 
 #adding postgre
-from dotenv import load_dotenv
-load_dotenv() 
+#from dotenv import load_dotenv
+#load_dotenv() 
 
 #updated 22 April
 import os
