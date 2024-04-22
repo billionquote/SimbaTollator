@@ -426,7 +426,7 @@ def get_last_5_contracts():
     return last_5_contracts
 
 
-from flask import current_app as app, request, render_template
+#from flask import current_app as app, request, render_template
 from flask_login import login_required
 from sqlalchemy import text
 
