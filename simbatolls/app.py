@@ -279,44 +279,47 @@ def create_rawdata_table(result_df):
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
 def confirm_upload():
-    rcm_df_path = session.get('rcm_df_path')
-    tolls_df_path = session.get('tolls_df_path')
+    
+    with app.app_context():
+    
+        rcm_df_path = session.get('rcm_df_path')
+        tolls_df_path = session.get('tolls_df_path')
 
-    if rcm_df_path is None or tolls_df_path is None:
-        return jsonify({'error': 'Session expired or data not found'}), 400
+        if rcm_df_path is None or tolls_df_path is None:
+            return jsonify({'error': 'Session expired or data not found'}), 400
 
-    # Load DataFrames from stored paths
-    rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
+        # Load DataFrames from stored paths
+        rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
 
-    # Using pandasql to perform the join operation
-    query = """
-        SELECT DISTINCT * 
-        FROM tolls_df
-        INNER JOIN rcm_df 
-        ON tolls_df.[LPN/Tag number] = rcm_df.[Vehicle]
-        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
-    """
-    result_df = ps.sqldf(query, locals())
-    result_df.drop_duplicates(inplace=True)
+        # Using pandasql to perform the join operation
+        query = """
+            SELECT DISTINCT * 
+            FROM tolls_df
+            INNER JOIN rcm_df 
+            ON tolls_df.[LPN/Tag number] = rcm_df.[Vehicle]
+            WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+        """
+        result_df = ps.sqldf(query, locals())
+        result_df.drop_duplicates(inplace=True)
 
-    try:
-        # Use SQLAlchemy to handle database connection
-        engine = db.engine
-        with engine.connect() as conn:
-            # Create table and insert data using SQLAlchemy methods
-            create_rawdata_table(result_df)  # Updated for use with PostgreSQL
-            result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
+        try:
+            # Use SQLAlchemy to handle database connection
+            engine = db.engine
+            with engine.connect() as conn:
+                # Create table and insert data using SQLAlchemy methods
+                create_rawdata_table(result_df)  # Updated for use with PostgreSQL
+                result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
 
-            # Update or insert summary data
-            summary, grand_total, admin_fee_total = populate_summary_table(result_df)
-            update_or_insert_summary(summary)
-    except Exception as e:
-        return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
-    finally:
-        session.pop('rcm_df_path', None)
-        session.pop('tolls_df_path', None)
+                # Update or insert summary data
+                summary, grand_total, admin_fee_total = populate_summary_table(result_df)
+                update_or_insert_summary(summary)
+        except Exception as e:
+            return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
+        finally:
+            session.pop('rcm_df_path', None)
+            session.pop('tolls_df_path', None)
 
-    return redirect(url_for('summary'))
+        return redirect(url_for('summary'))
 
 def update_or_insert_summary(summary):
     try:
