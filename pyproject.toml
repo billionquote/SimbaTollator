@@ -27,6 +27,7 @@ flask-bcrypt = "^1.0.1"
 app = "^0.0.1"
 bcrypt = "^4.1.2"
 psycopg2-binary = "^2.9.9"
+flask-migrate = "^4.0.7"
 
 
 [tool.poetry.group.dev.dependencies]

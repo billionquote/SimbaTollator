@@ -30,8 +30,10 @@ from flask_login import login_required
 
 #adding postgre
 
+#updated 22 April
+import os
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace("://", "ql://", 1)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///your_database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -48,6 +50,20 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return f"User('{self.username}')" 
+
+class Summary(db.Model):
+    __tablename__ = 'summary'
+
+    contract_number = db.Column(db.Integer, primary_key=True)
+    num_of_rows = db.Column(db.Integer)
+    sum_of_toll_cost = db.Column(db.Float)
+    total_toll_contract_cost = db.Column(db.Float)
+    pickup_date_time = db.Column(db.DateTime)
+    dropoff_date_time = db.Column(db.DateTime)
+    admin_fee = db.Column(db.Float)
+
+    def __repr__(self):
+        return f"<Summary contract_number={self.contract_number} num_of_rows={self.num_of_rows}>"
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -145,19 +161,19 @@ def upload_file():
 
 #data base management 
 
-DATABASE = 'database.db'
+#DATABASE = 'database.db'
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-    return db
+#def get_db():
+    #db = getattr(g, '_database', None)
+    #if db is None:
+        #db = g._database = sqlite3.connect(DATABASE)
+    #return db
 
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+#@app.teardown_appcontext
+#def close_connection(exception):
+    #db = getattr(g, '_database', None)
+    #if db is not None:
+        #db.close()
 
 # Load DataFrames from session paths
 def load_dataframes(rcm_df_path, tolls_df_path):
@@ -209,29 +225,44 @@ def populate_summary_table(df):
     
     return summary, grand_total, admin_fee_total
 
-def create_rawdata_table(result_df, conn):
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    #c.execute("DROP TABLE IF EXISTS rawdata")
-    # Basic type mapping, extend this based on your actual data types
+
+#update 22
+from flask import current_app as app
+def create_rawdata_table(result_df):
+    # Obtain a connection from SQLAlchemy
+    engine = app.db.engine  # Assuming db is the SQLAlchemy object
+    connection = engine.connect()
+    transaction = connection.begin()
+
+    # Map pandas data types to PostgreSQL data types
     type_mapping = {
         'int64': 'INTEGER',
         'float64': 'REAL',
-        'object': 'TEXT'  # Assuming 'object' dtype in pandas is textual content
+        'object': 'TEXT'  # Textual content in PostgreSQL
     }
-    
+
     # Generate column definitions for SQL
     column_defs = ', '.join([f'"{col}" {type_mapping[str(result_df[col].dtype)]}' for col in result_df.columns])
-    #print(f'i have created columns {column_defs}')
+
+    # SQL for creating table, ensuring it uses PostgreSQL syntax
     create_table_sql = f"""
     CREATE TABLE IF NOT EXISTS rawdata (
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         {column_defs}
     );"""
-    
-    c.execute(create_table_sql)
-    conn.commit()
-    conn.close()
+
+    # Execute the create table SQL
+    try:
+        connection.execute(create_table_sql)
+        transaction.commit()  # Commit the transaction if successful
+    except Exception as e:
+        app.logger.error(f"Error creating table: {e}")
+        transaction.rollback()  # Rollback the transaction on failure
+    finally:
+        connection.close()  # Always close the connection
+
+# Usage in your application would not change other than ensuring the DataFrame is passed
+
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
 def confirm_upload():
@@ -244,7 +275,7 @@ def confirm_upload():
     # Load DataFrames from stored paths
     rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
 
-    # SQL Query to join rcm_df and tolls_df
+    # Using pandasql to perform the join operation
     query = """
         SELECT DISTINCT * 
         FROM tolls_df
@@ -256,14 +287,16 @@ def confirm_upload():
     result_df.drop_duplicates(inplace=True)
 
     try:
-        with sqlite3.connect(DATABASE) as conn:
-            # Ensure the rawdata table exists and add new raw data
-            create_rawdata_table(result_df, conn)
-            result_df.to_sql('rawdata', conn, if_exists='append', index=False)
+        # Use SQLAlchemy to handle database connection
+        engine = db.engine
+        with engine.connect() as conn:
+            # Create table and insert data using SQLAlchemy methods
+            create_rawdata_table(result_df)  # Updated for use with PostgreSQL
+            result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
 
             # Update or insert summary data
             summary, grand_total, admin_fee_total = populate_summary_table(result_df)
-            update_or_insert_summary(conn, summary)
+            update_or_insert_summary(summary)
     except Exception as e:
         return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
     finally:
@@ -272,53 +305,57 @@ def confirm_upload():
 
     return redirect(url_for('summary'))
 
-def update_or_insert_summary(conn, summary):
-    cursor = conn.cursor()
-    for index, row in summary.iterrows():
-        # Check if record exists
-        cursor.execute("SELECT * FROM summary WHERE \"Contract Number\" = ?", (row['Contract Number'],))
-        existing = cursor.fetchone()
-        if existing:
-            # Update existing record
-            cursor.execute("""
-                UPDATE summary SET
-                "Num of Rows" = ?,
-                "Sum of Toll Cost" = ?,
-                "Total Toll Contract cost" = ?,
-                "Pickup Date Time" = ?,
-                "Dropoff Date Time" = ?,
-                "Admin Fee" = ?
-                WHERE "Contract Number" = ?
-            """, (row['Num of Rows'], row['Sum of Toll Cost'], row['Total Toll Contract cost'],
-                  row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee'], row['Contract Number']))
-        else:
-            # Insert new record
-            cursor.execute("""
-                INSERT INTO summary ("Contract Number", "Num of Rows", "Sum of Toll Cost", 
-                                     "Total Toll Contract cost", "Pickup Date Time", "Dropoff Date Time", "Admin Fee")
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (row['Contract Number'], row['Num of Rows'], row['Sum of Toll Cost'],
-                  row['Total Toll Contract cost'], row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee']))
-    conn.commit()
+def update_or_insert_summary(summary):
+    try:
+        # Using SQLAlchemy connection and transaction
+        engine = db.engine
+        with engine.connect() as conn:
+            transaction = conn.begin()
+            for index, row in summary.iterrows():
+                # Check if record exists
+                result = conn.execute("SELECT * FROM summary WHERE \"Contract Number\" = %s", row['Contract Number'])
+                existing = result.fetchone()
+                if existing:
+                    # Update existing record
+                    conn.execute("""
+                        UPDATE summary SET
+                        "Num of Rows" = %s,
+                        "Sum of Toll Cost" = %s,
+                        "Total Toll Contract cost" = %s,
+                        "Pickup Date Time" = %s,
+                        "Dropoff Date Time" = %s,
+                        "Admin Fee" = %s
+                        WHERE "Contract Number" = %s
+                    """, (row['Num of Rows'], row['Sum of Toll Cost'], row['Total Toll Contract cost'],
+                          row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee'], row['Contract Number']))
+                else:
+                    # Insert new record
+                    conn.execute("""
+                        INSERT INTO summary ("Contract Number", "Num of Rows", "Sum of Toll Cost", 
+                                             "Total Toll Contract cost", "Pickup Date Time", "Dropoff Date Time", "Admin Fee")
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (row['Contract Number'], row['Num of Rows'], row['Sum of Toll Cost'],
+                          row['Total Toll Contract cost'], row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee']))
+            transaction.commit()
+    except Exception as e:
+        transaction.rollback()
+        app.logger.error(f"Failed to update or insert summary: {e}")
+        raise
 
-
-
+from flask import current_app as app
 
 def fetch_summary_data():
     try:
-        con = sqlite3.connect(DATABASE)
-        con.row_factory = sqlite3.Row  # This makes rows fetch as dictionaries
-        cur = con.cursor()
-
-        # Correct the ORDER BY clause by removing the single quotes around the column name
-        cur.execute("SELECT * FROM summary ORDER BY \"Contract Number\" DESC")
-        summary_data = [dict(row) for row in cur.fetchall()]
-
-        con.close()
+        # Use SQLAlchemy's session to execute SQL
+        engine = app.db.engine  # Assuming db is the SQLAlchemy object
+        with engine.connect() as connection:
+            result = connection.execute("SELECT * FROM summary ORDER BY \"Contract Number\" DESC")
+            summary_data = [dict(row) for row in result.fetchall()]
         return summary_data
     except Exception as e:
-        print("Error fetching summary data:", e)
+        app.logger.error(f"Error fetching summary data: {e}")
         return None
+
 
 
 @app.route('/summary')
@@ -360,64 +397,65 @@ def compact_number_format(value):
 app.jinja_env.filters['compact_number'] = compact_number_format
 
 def get_last_5_contracts():
-    try:
-        con = sqlite3.connect(DATABASE)
-        con.row_factory = sqlite3.Row  # Fetch rows as dictionaries
-        cur = con.cursor()
+    engine = app.db.engine  # Ensure you have this setup to access the db engine
+    with engine.connect() as connection:
+        query = """
+            SELECT DISTINCT "Contract Number" 
+            FROM summary 
+            ORDER BY "Contract Number" DESC 
+            LIMIT 5
+        """
+        result = connection.execute(query)
+        last_5_contracts = [row['Contract Number'] for row in result.fetchall()]
+    return last_5_contracts
 
-        # Assuming 'Contract Number' is stored as a numerical value and you want the 5 largest values
-        cur.execute("SELECT DISTINCT `Contract Number` FROM summary ORDER BY `Contract Number` DESC LIMIT 5")
-        last_5_contracts = [row['Contract Number'] for row in cur.fetchall()]
 
-        con.close()
-        return last_5_contracts
-    except Exception as e:
-        print("Error fetching last 5 contracts:", e)
-        return []
+from flask import current_app as app, request, render_template
+from flask_login import login_required
+from sqlalchemy import text
 
-@app.route('/search', methods=['POST','GET'])
+@app.route('/search', methods=['POST', 'GET'])
 @login_required
 def search():
     last_5_contracts = get_last_5_contracts()
-    if request.method == 'POST':
-        search_query = request.form.get('search_query')
-    else:
-        search_query = request.args.get('search_query', None) 
+    search_query = request.form.get('search_query') if request.method == 'POST' else request.args.get('search_query', None)
+    
     if search_query:
-        # Connect to the database
-        con = sqlite3.connect(DATABASE)
-        con.row_factory = sqlite3.Row  # This ensures rows are fetched as dictionary-like objects
-        
-        # Fetch summary record for the contract
-        summary_cursor = con.execute("SELECT * FROM summary WHERE `Contract Number` = ?", (search_query,))
-        summary_record = [dict(row) for row in summary_cursor.fetchall()]
+        # Use SQLAlchemy to handle the database connection and querying
+        engine = app.db.engine  # Make sure you have configured your db instance with SQLAlchemy
+        with engine.connect() as connection:
+            # Fetch summary record for the contract
+            summary_result = connection.execute(
+                text("SELECT * FROM summary WHERE \"Contract Number\" = :cn"),
+                {'cn': search_query}
+            )
+            summary_record = [{column: value for column, value in row.items()} for row in summary_result]
 
-        # Fetch raw records for the contract with specific columns
-        raw_query = """
-        SELECT distinct "Start Date" as "Toll Date/Time", "Details", "LPN/Tag number", "Vehicle Class", "Trip Cost",
-                "Rego" 
-        FROM rawdata 
-        WHERE "Res." = ?
-        """
-        raw_cursor = con.execute(raw_query, (search_query,))
-        raw_records = [dict(row) for row in raw_cursor.fetchall()]
-        
-        # Formatting 'Trip Cost' to include a dollar sign
-        for record in raw_records:
-            # Ensure Trip Cost is a float before formatting, this is a safeguard.
-            try:
-                record['Trip Cost'] = f"${float(record['Trip Cost']):,.2f}"
-            except ValueError:
-                # In case 'Trip Cost' is not a valid float, keep it as is or handle appropriately.
-                pass
-        
-        con.close()
+            # Fetch raw records for the contract with specific columns
+            raw_result = connection.execute(
+                text("""
+                    SELECT DISTINCT "Start Date" as "Toll Date/Time", "Details", "LPN/Tag number", "Vehicle Class", "Trip Cost", "Rego"
+                    FROM rawdata
+                    WHERE "Res." = :res
+                """),
+                {'res': search_query}
+            )
+            raw_records = [{column: value for column, value in row.items()} for row in raw_result]
+
+            # Format 'Trip Cost' to include a dollar sign
+            for record in raw_records:
+                try:
+                    record['Trip Cost'] = f"${float(record['Trip Cost']):,.2f}"
+                except ValueError:
+                    pass  # In case 'Trip Cost' is not a valid float, keep it as is or handle appropriately.
 
         # Pass the converted records to your template
         return render_template('search_results.html', summary_record=summary_record, raw_records=raw_records, search_query=search_query, last_5_contracts=last_5_contracts)
+
     else:
         # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
+
 
 
 if __name__ == '__main__':
