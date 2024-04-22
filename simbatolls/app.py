@@ -7,7 +7,7 @@ import os
 import time
 import sqlite3
 import tempfile
-from flask import current_app as app
+#from flask import current_app as app
 
 
 app = Flask(__name__, template_folder='templates')
