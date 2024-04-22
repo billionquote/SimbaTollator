@@ -58,7 +58,7 @@ python-dotenv==1.0.1
 pytz==2024.1
 pyzmq==25.1.2
 setuptools==69.2.0
--e git+https://github.com/BardiaAlavi/SimbaTollator.git@dbb9a4e3d858ac57b84404f0330d438b0ac99e9e#egg=simbatolls
+-e git+https://github.com/BardiaAlavi/SimbaTollator.git@c4251fcf48c693e5911c6e6a63d47b5ff6115b62#egg=simbatolls
 six==1.16.0
 SQLAlchemy==2.0.29
 stack-data==0.6.3
