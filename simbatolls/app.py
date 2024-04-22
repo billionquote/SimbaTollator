@@ -240,7 +240,7 @@ def populate_summary_table(df):
 
 
 #update 22
-from flask import current_app as app
+#from flask import current_app as app
 def create_rawdata_table(result_df):
     # Obtain a connection from SQLAlchemy
     engine = app.db.engine  # Assuming db is the SQLAlchemy object
@@ -358,7 +358,7 @@ def update_or_insert_summary(summary):
         app.logger.error(f"Failed to update or insert summary: {e}")
         raise
 
-from flask import current_app as app
+#from flask import current_app as app
 
 def fetch_summary_data():
     try:
