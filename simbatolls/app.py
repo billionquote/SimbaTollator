@@ -36,6 +36,7 @@ from flask_login import login_required
 import os
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
 database_url =os.getenv('DATABASE_URL')
+#database_url="postgres://ktbzjfczfdhzls:894a3004b174c857f5188cc7148b20e9a660ae6b9c70ce8071287bd7700689de@ec2-35-169-9-79.compute-1.amazonaws.com:5432/d2jinffuso3col"
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -65,6 +66,45 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.username}')" 
 
+class RawData(db.Model):
+    __tablename__ = 'rawdata'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    start_date = db.Column(db.DateTime, nullable=True)  # Assuming dates can be null
+    details = db.Column(db.String(255), nullable=True)
+    lpn_tag_number = db.Column(db.String(100), nullable=True)
+    vehicle_class = db.Column(db.String(50), nullable=True)
+    trip_cost = db.Column(db.Float, nullable=True)
+    fleet_id = db.Column(db.String(50), nullable=True)
+    end_date = db.Column(db.DateTime, nullable=True)
+    date = db.Column(db.Date, nullable=True)
+    rego = db.Column(db.String(50), nullable=True)
+    hash_ = db.Column(db.String(50), nullable=True)  # Using 'hash_' because '#' is not a valid variable name
+    res = db.Column(db.String(50), nullable=True)
+    ref = db.Column(db.String(50), nullable=True)
+    update = db.Column(db.DateTime, nullable=True)  # Assuming 'Update' is a date-time column
+    notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), nullable=True)
+    dropoff = db.Column(db.String(50), nullable=True)
+    day = db.Column(db.String(50), nullable=True)
+    dropoff_date = db.Column(db.Date, nullable=True)
+    time = db.Column(db.Time, nullable=True)
+    pickup = db.Column(db.String(50), nullable=True)
+    pickup_date = db.Column(db.Date, nullable=True)
+    time_c13 = db.Column(db.Time, nullable=True)
+    days = db.Column(db.Integer, nullable=True)  # Assuming '# Days' is an integer
+    category = db.Column(db.String(50), nullable=True)
+    vehicle = db.Column(db.String(50), nullable=True)
+    colour = db.Column(db.String(50), nullable=True)
+    items = db.Column(db.String(255), nullable=True)
+    insurance = db.Column(db.String(50), nullable=True)
+    departure = db.Column(db.DateTime, nullable=True)
+    next_rental = db.Column(db.DateTime, nullable=True)
+    pickup_date_time = db.Column(db.DateTime, nullable=True)
+    dropoff_date_time = db.Column(db.DateTime, nullable=True)
+    
+    def __repr__(self):
+        return f"User('{self.res}')" 
+    
 class Summary(db.Model):
     __tablename__ = 'summary'
 
@@ -243,37 +283,29 @@ def populate_summary_table(df):
 #update 22
 #from flask import current_app as app
 def create_rawdata_table(result_df):
-    # Obtain a connection from SQLAlchemy
-    engine = app.db.engine  # Assuming db is the SQLAlchemy object
-    connection = engine.connect()
-    transaction = connection.begin()
+    from sqlalchemy import Table, Column, Integer, String, MetaData, Float
+    metadata = MetaData()
+    
+    columns = [
+        Column('id', Integer, primary_key=True)
+    ]
+    # Dynamically add columns based on DataFrame
+    for col_name, dtype in result_df.dtypes.iteritems():
+        if dtype == 'int64':
+            col_type = Integer()
+        elif dtype == 'float64':
+            col_type = Float()
+        elif dtype == 'object':
+            col_type = String()
+        else:
+            col_type = String()  # Default type
+        columns.append(Column(col_name, col_type))
+    
+    # Create table dynamically
+    rawdata_table = Table('rawdata', metadata, *columns, extend_existing=True)
+    engine = db.engine
+    rawdata_table.create(engine, checkfirst=True)
 
-    # Map pandas data types to PostgreSQL data types
-    type_mapping = {
-        'int64': 'INTEGER',
-        'float64': 'REAL',
-        'object': 'TEXT'  # Textual content in PostgreSQL
-    }
-
-    # Generate column definitions for SQL
-    column_defs = ', '.join([f'"{col}" {type_mapping[str(result_df[col].dtype)]}' for col in result_df.columns])
-
-    # SQL for creating table, ensuring it uses PostgreSQL syntax
-    create_table_sql = f"""
-    CREATE TABLE IF NOT EXISTS rawdata (
-        id SERIAL PRIMARY KEY,
-        {column_defs}
-    );"""
-
-    # Execute the create table SQL
-    try:
-        connection.execute(create_table_sql)
-        transaction.commit()  # Commit the transaction if successful
-    except Exception as e:
-        app.logger.error(f"Error creating table: {e}")
-        transaction.rollback()  # Rollback the transaction on failure
-    finally:
-        connection.close()  # Always close the connection
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
 

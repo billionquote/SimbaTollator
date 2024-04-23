@@ -5,7 +5,8 @@ from flask_bcrypt import Bcrypt
 from flask_login import UserMixin
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///your_database.db'
+# to get URI go to Heroku >> settings >> Config Var and update the below
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://ktbzjfczfdhzls:894a3004b174c857f5188cc7148b20e9a660ae6b9c70ce8071287bd7700689de@ec2-35-169-9-79.compute-1.amazonaws.com:5432/d2jinffuso3col'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'replace_with_a_secret_key'
 
@@ -33,4 +34,5 @@ def add_user(username, password):
 
 # Example usage
 # add_user (username, password)
-##add_user('bz@simbacarhire.com.au', 'XXXXXXX')
+# updatae the password below from ### to whatever 
+add_user('bz@simbacarhire.com.au', '#####')
