@@ -366,13 +366,21 @@ def update_or_insert_summary(summary):
         with engine.connect() as conn:
             transaction = conn.begin()
             for index, row in summary.iterrows():
-                # Convert row to a dict and prepare parameters
-                params = row.to_dict()
+                # Prepare parameters ensuring keys match SQL placeholders
+                params = {
+                    'contract_number': row['Contract Number'],
+                    'num_of_rows': row['Num of Rows'],
+                    'sum_of_toll_cost': row['Sum_of_Toll_Cost'],
+                    'total_toll_cost': row['Total Toll Contract cost'].replace('$', '').replace(',', ''),  # Strip currency format
+                    'pickup_time': row['Pickup Date Time'],
+                    'dropoff_time': row['Dropoff Date Time'],
+                    'admin_fee': row['admin_fee']
+                }
                 
-                # Check if record exists using the 'text' function to ensure SQL command is text
+                # Check if record exists
                 existing = conn.execute(
                     text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
-                    {'contract_number': params['Contract Number']}
+                    {'contract_number': params['contract_number']}
                 ).scalar()
                 
                 if existing:
@@ -399,6 +407,7 @@ def update_or_insert_summary(summary):
         transaction.rollback()
         app.logger.error(f"Failed to update or insert summary: {e}")
         raise
+
 
 
 def fetch_summary_data():
