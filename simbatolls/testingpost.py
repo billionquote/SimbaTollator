@@ -7,6 +7,7 @@ import os
 import time
 import sqlite3
 import tempfile
+from sqlalchemy.sql import text
 #from flask import current_app as app
 
 
@@ -35,7 +36,8 @@ from flask_login import login_required
 #updated 22 April
 import os
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-database_url = os.getenv('DATABASE_URL')
+database_url =os.getenv('DATABASE_URL')
+#database_url="postgres://ktbzjfczfdhzls:894a3004b174c857f5188cc7148b20e9a660ae6b9c70ce8071287bd7700689de@ec2-35-169-9-79.compute-1.amazonaws.com:5432/d2jinffuso3col"
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -65,6 +67,45 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.username}')" 
 
+class RawData(db.Model):
+    __tablename__ = 'rawdata'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    start_date = db.Column(db.DateTime, nullable=True)  # Assuming dates can be null
+    details = db.Column(db.String(255), nullable=True)
+    lpn_tag_number = db.Column(db.String(100), nullable=True)
+    vehicle_class = db.Column(db.String(50), nullable=True)
+    trip_cost = db.Column(db.Float, nullable=True)
+    fleet_id = db.Column(db.String(50), nullable=True)
+    end_date = db.Column(db.DateTime, nullable=True)
+    date = db.Column(db.Date, nullable=True)
+    rego = db.Column(db.String(50), nullable=True)
+    hash_ = db.Column(db.String(50), nullable=True)  # Using 'hash_' because '#' is not a valid variable name
+    res = db.Column(db.String(50), nullable=True)
+    ref = db.Column(db.String(50), nullable=True)
+    update = db.Column(db.DateTime, nullable=True)  # Assuming 'Update' is a date-time column
+    notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), nullable=True)
+    dropoff = db.Column(db.String(50), nullable=True)
+    day = db.Column(db.String(50), nullable=True)
+    dropoff_date = db.Column(db.Date, nullable=True)
+    time = db.Column(db.Time, nullable=True)
+    pickup = db.Column(db.String(50), nullable=True)
+    pickup_date = db.Column(db.Date, nullable=True)
+    time_c13 = db.Column(db.Time, nullable=True)
+    days = db.Column(db.Integer, nullable=True)  # Assuming '# Days' is an integer
+    category = db.Column(db.String(50), nullable=True)
+    vehicle = db.Column(db.String(50), nullable=True)
+    colour = db.Column(db.String(50), nullable=True)
+    items = db.Column(db.String(255), nullable=True)
+    insurance = db.Column(db.String(50), nullable=True)
+    departure = db.Column(db.DateTime, nullable=True)
+    next_rental = db.Column(db.DateTime, nullable=True)
+    pickup_date_time = db.Column(db.DateTime, nullable=True)
+    dropoff_date_time = db.Column(db.DateTime, nullable=True)
+    
+    def __repr__(self):
+        return f"User('{self.res}')" 
+    
 class Summary(db.Model):
     __tablename__ = 'summary'
 
@@ -240,57 +281,52 @@ def populate_summary_table(df):
     return summary, grand_total, admin_fee_total
 
 
-#update 22
-#from flask import current_app as app
 def create_rawdata_table(result_df):
-    # Obtain a connection from SQLAlchemy
-    engine = app.db.engine  # Assuming db is the SQLAlchemy object
-    connection = engine.connect()
-    transaction = connection.begin()
+    from sqlalchemy import Table, Column, Integer, String, MetaData, Float
+    metadata = MetaData()
 
-    # Map pandas data types to PostgreSQL data types
-    type_mapping = {
-        'int64': 'INTEGER',
-        'float64': 'REAL',
-        'object': 'TEXT'  # Textual content in PostgreSQL
-    }
+    columns = [
+        Column('id', Integer, primary_key=True)
+    ]
+    # Dynamically add columns based on DataFrame dtypes
+    for col_name, dtype in result_df.dtypes.items():  # Changed from iteritems() to items()
+        if dtype == 'int64':
+            col_type = Integer()
+        elif dtype == 'float64':
+            col_type = Float()
+        elif dtype == 'object':
+            col_type = String()
+        else:
+            col_type = String()  # Default type
+        columns.append(Column(col_name, col_type))
+    
+    # Create table dynamically
+    rawdata_table = Table('rawdata', metadata, *columns, extend_existing=True)
+    engine = db.engine
+    rawdata_table.create(engine, checkfirst=True)
 
-    # Generate column definitions for SQL
-    column_defs = ', '.join([f'"{col}" {type_mapping[str(result_df[col].dtype)]}' for col in result_df.columns])
 
-    # SQL for creating table, ensuring it uses PostgreSQL syntax
-    create_table_sql = f"""
-    CREATE TABLE IF NOT EXISTS rawdata (
-        id SERIAL PRIMARY KEY,
-        {column_defs}
-    );"""
-
-    # Execute the create table SQL
-    try:
-        connection.execute(create_table_sql)
-        transaction.commit()  # Commit the transaction if successful
-    except Exception as e:
-        app.logger.error(f"Error creating table: {e}")
-        transaction.rollback()  # Rollback the transaction on failure
-    finally:
-        connection.close()  # Always close the connection
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
 
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
 def confirm_upload():
-    
     with app.app_context():
-    
         rcm_df_path = session.get('rcm_df_path')
         tolls_df_path = session.get('tolls_df_path')
+
+        print(f"Debug: rcm_df_path = {rcm_df_path}, tolls_df_path = {tolls_df_path}")  # Debug print
 
         if rcm_df_path is None or tolls_df_path is None:
             return jsonify({'error': 'Session expired or data not found'}), 400
 
         # Load DataFrames from stored paths
         rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
+        
+        if rcm_df.empty or tolls_df.empty:
+            print("Debug: DataFrames are empty")  # Debug print
+            return jsonify({'error': 'DataFrames are empty'}), 400
 
         # Using pandasql to perform the join operation
         query = """
@@ -303,18 +339,20 @@ def confirm_upload():
         result_df = ps.sqldf(query, locals())
         result_df.drop_duplicates(inplace=True)
 
+        if result_df.empty:
+            print("Debug: Resultant DataFrame is empty after query and drop duplicates")  # Debug print
+            return jsonify({'error': 'Processed data is empty'}), 400
+
         try:
-            # Use SQLAlchemy to handle database connection
             engine = db.engine
             with engine.connect() as conn:
-                # Create table and insert data using SQLAlchemy methods
-                create_rawdata_table(result_df)  # Updated for use with PostgreSQL
+                create_rawdata_table(result_df)  # Ensure this function has error handling
                 result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
 
-                # Update or insert summary data
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
         except Exception as e:
+            print(f"Debug: Exception in database operations - {e}")  # Debug print
             return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
         finally:
             session.pop('rcm_df_path', None)
@@ -324,54 +362,66 @@ def confirm_upload():
 
 def update_or_insert_summary(summary):
     try:
-        # Using SQLAlchemy connection and transaction
         engine = db.engine
         with engine.connect() as conn:
             transaction = conn.begin()
             for index, row in summary.iterrows():
+                # Prepare parameters ensuring keys match SQL placeholders
+                params = {
+                    'contract_number': row['Contract Number'],
+                    'num_of_rows': row['Num of Rows'],
+                    'sum_of_toll_cost': row['Sum_of_Toll_Cost'],
+                    'total_toll_cost': row['Total Toll Contract cost'].replace('$', '').replace(',', ''),  # Strip currency format
+                    'pickup_time': row['Pickup Date Time'],
+                    'dropoff_time': row['Dropoff Date Time'],
+                    'admin_fee': row['admin_fee']
+                }
+                
                 # Check if record exists
-                result = conn.execute("SELECT * FROM summary WHERE \"Contract Number\" = %s", row['Contract Number'])
-                existing = result.fetchone()
+                existing = conn.execute(
+                    text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
+                    {'contract_number': params['contract_number']}
+                ).scalar()
+                
                 if existing:
                     # Update existing record
-                    conn.execute("""
+                    conn.execute(text("""
                         UPDATE summary SET
-                        "Num of Rows" = %s,
-                        "Sum of Toll Cost" = %s,
-                        "Total Toll Contract cost" = %s,
-                        "Pickup Date Time" = %s,
-                        "Dropoff Date Time" = %s,
-                        "Admin Fee" = %s
-                        WHERE "Contract Number" = %s
-                    """, (row['Num of Rows'], row['Sum of Toll Cost'], row['Total Toll Contract cost'],
-                          row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee'], row['Contract Number']))
+                        num_of_rows = :num_of_rows,
+                        sum_of_toll_cost = :sum_of_toll_cost,
+                        total_toll_contract_cost = :total_toll_cost,
+                        pickup_date_time = :pickup_time,
+                        dropoff_date_time = :dropoff_time,
+                        admin_fee = :admin_fee
+                        WHERE contract_number = :contract_number
+                    """), params)
                 else:
                     # Insert new record
-                    conn.execute("""
-                        INSERT INTO summary ("Contract Number", "Num of Rows", "Sum of Toll Cost", 
-                                             "Total Toll Contract cost", "Pickup Date Time", "Dropoff Date Time", "Admin Fee")
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, (row['Contract Number'], row['Num of Rows'], row['Sum of Toll Cost'],
-                          row['Total Toll Contract cost'], row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee']))
+                    conn.execute(text("""
+                        INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
+                                             total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
+                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_time, :dropoff_time, :admin_fee)
+                    """), params)
             transaction.commit()
     except Exception as e:
         transaction.rollback()
         app.logger.error(f"Failed to update or insert summary: {e}")
         raise
 
-#from flask import current_app as app
+
 
 def fetch_summary_data():
     try:
         # Use SQLAlchemy's session to execute SQL
-        engine = app.db.engine  # Assuming db is the SQLAlchemy object
+        engine = db.engine  # Corrected to use the global db instance
         with engine.connect() as connection:
-            result = connection.execute("SELECT * FROM summary ORDER BY \"Contract Number\" DESC")
+            result = connection.execute("SELECT * FROM summary ORDER BY \"contract_number\" DESC")
             summary_data = [dict(row) for row in result.fetchall()]
         return summary_data
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
         return None
+
 
 
 
