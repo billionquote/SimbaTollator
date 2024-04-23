@@ -7,6 +7,7 @@ import os
 import time
 import sqlite3
 import tempfile
+from sqlalchemy.sql import text
 #from flask import current_app as app
 
 
@@ -369,15 +370,13 @@ def update_or_insert_summary(summary):
                 # Convert row to a dict and prepare parameters
                 params = row.to_dict()
                 
-                # Check if record exists
-                existing = conn.execute(
-                    "SELECT 1 FROM summary WHERE \"Contract Number\" = :contract_number",
-                    {'contract_number': params['Contract Number']}
-                ).fetchone()
-                
+                # Prepare and execute the check query
+                check_query = text("SELECT 1 FROM summary WHERE \"Contract Number\" = :contract_number")
+                existing = conn.execute(check_query, {'contract_number': params['Contract Number']}).scalar()
+
                 if existing:
                     # Update existing record
-                    conn.execute("""
+                    update_query = text("""
                         UPDATE summary SET
                         "Num of Rows" = :num_of_rows,
                         "Sum of Toll Cost" = :sum_of_toll_cost,
@@ -386,14 +385,16 @@ def update_or_insert_summary(summary):
                         "Dropoff Date Time" = :dropoff_time,
                         "Admin Fee" = :admin_fee
                         WHERE "Contract Number" = :contract_number
-                    """, params)
+                    """)
+                    conn.execute(update_query, params)
                 else:
                     # Insert new record
-                    conn.execute("""
+                    insert_query = text("""
                         INSERT INTO summary ("Contract Number", "Num of Rows", "Sum of Toll Cost", 
                                              "Total Toll Contract cost", "Pickup Date Time", "Dropoff Date Time", "Admin Fee")
                         VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_time, :dropoff_time, :admin_fee)
-                    """, params)
+                    """)
+                    conn.execute(insert_query, params)
             transaction.commit()
     except Exception as e:
         transaction.rollback()
