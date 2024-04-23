@@ -369,15 +369,15 @@ def update_or_insert_summary(summary):
                 # Convert row to a dict and prepare parameters
                 params = row.to_dict()
                 
-                # Check if record exists
+                # Check if record exists using the 'text' function to ensure SQL command is text
                 existing = conn.execute(
-                    "SELECT 1 FROM summary WHERE contract_number = :contract_number",
+                    text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
                     {'contract_number': params['Contract Number']}
                 ).scalar()
                 
                 if existing:
                     # Update existing record
-                    conn.execute("""
+                    conn.execute(text("""
                         UPDATE summary SET
                         num_of_rows = :num_of_rows,
                         sum_of_toll_cost = :sum_of_toll_cost,
@@ -386,14 +386,14 @@ def update_or_insert_summary(summary):
                         dropoff_date_time = :dropoff_time,
                         admin_fee = :admin_fee
                         WHERE contract_number = :contract_number
-                    """, params)
+                    """), params)
                 else:
                     # Insert new record
-                    conn.execute("""
+                    conn.execute(text("""
                         INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
                                              total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
                         VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_time, :dropoff_time, :admin_fee)
-                    """, params)
+                    """), params)
             transaction.commit()
     except Exception as e:
         transaction.rollback()
