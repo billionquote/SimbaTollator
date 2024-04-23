@@ -360,7 +360,6 @@ def confirm_upload():
 
         return redirect(url_for('summary'))
 
-
 def update_or_insert_summary(summary):
     try:
         engine = db.engine
@@ -370,31 +369,31 @@ def update_or_insert_summary(summary):
                 # Convert row to a dict and prepare parameters
                 params = row.to_dict()
                 
-                # Prepare and execute the check query
-                check_query = text("SELECT 1 FROM summary WHERE \"Contract Number\" = :contract_number")
-                existing = conn.execute(check_query, {'contract_number': params['Contract Number']}).scalar()
-
+                # Check if record exists
+                existing = conn.execute(
+                    "SELECT 1 FROM summary WHERE contract_number = :contract_number",
+                    {'contract_number': params['Contract Number']}
+                ).scalar()
+                
                 if existing:
                     # Update existing record
-                    update_query = text("""
+                    conn.execute("""
                         UPDATE summary SET
-                        "Num of Rows" = :num_of_rows,
-                        "Sum of Toll Cost" = :sum_of_toll_cost,
-                        "Total Toll Contract cost" = :total_toll_cost,
-                        "Pickup Date Time" = :pickup_time,
-                        "Dropoff Date Time" = :dropoff_time,
-                        "Admin Fee" = :admin_fee
-                        WHERE "Contract Number" = :contract_number
-                    """)
-                    conn.execute(update_query, params)
+                        num_of_rows = :num_of_rows,
+                        sum_of_toll_cost = :sum_of_toll_cost,
+                        total_toll_contract_cost = :total_toll_cost,
+                        pickup_date_time = :pickup_time,
+                        dropoff_date_time = :dropoff_time,
+                        admin_fee = :admin_fee
+                        WHERE contract_number = :contract_number
+                    """, params)
                 else:
                     # Insert new record
-                    insert_query = text("""
-                        INSERT INTO summary ("Contract Number", "Num of Rows", "Sum of Toll Cost", 
-                                             "Total Toll Contract cost", "Pickup Date Time", "Dropoff Date Time", "Admin Fee")
+                    conn.execute("""
+                        INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
+                                             total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
                         VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_time, :dropoff_time, :admin_fee)
-                    """)
-                    conn.execute(insert_query, params)
+                    """, params)
             transaction.commit()
     except Exception as e:
         transaction.rollback()
@@ -402,14 +401,12 @@ def update_or_insert_summary(summary):
         raise
 
 
-#from flask import current_app as app
-
 def fetch_summary_data():
     try:
         # Use SQLAlchemy's session to execute SQL
         engine = app.db.engine  # Assuming db is the SQLAlchemy object
         with engine.connect() as connection:
-            result = connection.execute("SELECT * FROM summary ORDER BY \"Contract Number\" DESC")
+            result = connection.execute("SELECT * FROM summary ORDER BY \"contract_number\" DESC")
             summary_data = [dict(row) for row in result.fetchall()]
         return summary_data
     except Exception as e:
