@@ -35,7 +35,7 @@ from flask_login import login_required
 #updated 22 April
 import os
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-database_url = os.getenv('DATABASE_URL')
+database_url =os.getenv('DATABASE_URL')
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
