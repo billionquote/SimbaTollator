@@ -362,40 +362,44 @@ def confirm_upload():
 
 def update_or_insert_summary(summary):
     try:
-        # Using SQLAlchemy connection and transaction
         engine = db.engine
         with engine.connect() as conn:
             transaction = conn.begin()
             for index, row in summary.iterrows():
+                # Convert row to a dict and prepare parameters
+                params = row.to_dict()
+                
                 # Check if record exists
-                result = conn.execute("SELECT * FROM summary WHERE \"Contract Number\" = %s", row['Contract Number'])
-                existing = result.fetchone()
+                existing = conn.execute(
+                    "SELECT 1 FROM summary WHERE \"Contract Number\" = :contract_number",
+                    {'contract_number': params['Contract Number']}
+                ).fetchone()
+                
                 if existing:
                     # Update existing record
                     conn.execute("""
                         UPDATE summary SET
-                        "Num of Rows" = %s,
-                        "Sum of Toll Cost" = %s,
-                        "Total Toll Contract cost" = %s,
-                        "Pickup Date Time" = %s,
-                        "Dropoff Date Time" = %s,
-                        "Admin Fee" = %s
-                        WHERE "Contract Number" = %s
-                    """, (row['Num of Rows'], row['Sum of Toll Cost'], row['Total Toll Contract cost'],
-                          row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee'], row['Contract Number']))
+                        "Num of Rows" = :num_of_rows,
+                        "Sum of Toll Cost" = :sum_of_toll_cost,
+                        "Total Toll Contract cost" = :total_toll_cost,
+                        "Pickup Date Time" = :pickup_time,
+                        "Dropoff Date Time" = :dropoff_time,
+                        "Admin Fee" = :admin_fee
+                        WHERE "Contract Number" = :contract_number
+                    """, params)
                 else:
                     # Insert new record
                     conn.execute("""
                         INSERT INTO summary ("Contract Number", "Num of Rows", "Sum of Toll Cost", 
                                              "Total Toll Contract cost", "Pickup Date Time", "Dropoff Date Time", "Admin Fee")
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, (row['Contract Number'], row['Num of Rows'], row['Sum of Toll Cost'],
-                          row['Total Toll Contract cost'], row['Pickup Date Time'], row['Dropoff Date Time'], row['Admin Fee']))
+                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_time, :dropoff_time, :admin_fee)
+                    """, params)
             transaction.commit()
     except Exception as e:
         transaction.rollback()
         app.logger.error(f"Failed to update or insert summary: {e}")
         raise
+
 
 #from flask import current_app as app
 
