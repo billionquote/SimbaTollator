@@ -283,12 +283,12 @@ def populate_summary_table(df):
 def create_rawdata_table(result_df):
     from sqlalchemy import Table, Column, Integer, String, MetaData, Float
     metadata = MetaData()
-    
+
     columns = [
         Column('id', Integer, primary_key=True)
     ]
-    # Dynamically add columns based on DataFrame
-    for col_name, dtype in result_df.dtypes.iteritems():
+    # Dynamically add columns based on DataFrame dtypes
+    for col_name, dtype in result_df.dtypes.items():  # Changed from iteritems() to items()
         if dtype == 'int64':
             col_type = Integer()
         elif dtype == 'float64':
@@ -303,6 +303,7 @@ def create_rawdata_table(result_df):
     rawdata_table = Table('rawdata', metadata, *columns, extend_existing=True)
     engine = db.engine
     rawdata_table.create(engine, checkfirst=True)
+
 
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
