@@ -280,8 +280,6 @@ def populate_summary_table(df):
     return summary, grand_total, admin_fee_total
 
 
-#update 22
-#from flask import current_app as app
 def create_rawdata_table(result_df):
     from sqlalchemy import Table, Column, Integer, String, MetaData, Float
     metadata = MetaData()
@@ -312,17 +310,21 @@ def create_rawdata_table(result_df):
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
 def confirm_upload():
-    
     with app.app_context():
-    
         rcm_df_path = session.get('rcm_df_path')
         tolls_df_path = session.get('tolls_df_path')
+
+        print(f"Debug: rcm_df_path = {rcm_df_path}, tolls_df_path = {tolls_df_path}")  # Debug print
 
         if rcm_df_path is None or tolls_df_path is None:
             return jsonify({'error': 'Session expired or data not found'}), 400
 
         # Load DataFrames from stored paths
         rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
+        
+        if rcm_df.empty or tolls_df.empty:
+            print("Debug: DataFrames are empty")  # Debug print
+            return jsonify({'error': 'DataFrames are empty'}), 400
 
         # Using pandasql to perform the join operation
         query = """
@@ -335,24 +337,27 @@ def confirm_upload():
         result_df = ps.sqldf(query, locals())
         result_df.drop_duplicates(inplace=True)
 
+        if result_df.empty:
+            print("Debug: Resultant DataFrame is empty after query and drop duplicates")  # Debug print
+            return jsonify({'error': 'Processed data is empty'}), 400
+
         try:
-            # Use SQLAlchemy to handle database connection
             engine = db.engine
             with engine.connect() as conn:
-                # Create table and insert data using SQLAlchemy methods
-                create_rawdata_table(result_df)  # Updated for use with PostgreSQL
+                create_rawdata_table(result_df)  # Ensure this function has error handling
                 result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
 
-                # Update or insert summary data
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
         except Exception as e:
+            print(f"Debug: Exception in database operations - {e}")  # Debug print
             return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
         finally:
             session.pop('rcm_df_path', None)
             session.pop('tolls_df_path', None)
 
         return redirect(url_for('summary'))
+
 
 def update_or_insert_summary(summary):
     try:
