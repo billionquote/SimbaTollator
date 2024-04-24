@@ -412,18 +412,14 @@ def update_or_insert_summary(summary):
 
 def fetch_summary_data():
     try:
-        # Use SQLAlchemy's session to execute SQL
-        engine = db.engine  # Corrected to use the global db instance
+        engine = db.engine
         with engine.connect() as connection:
-            result = connection.execute("SELECT * FROM summary ORDER BY \"contract_number\" DESC")
+            result = connection.execute(text("SELECT * FROM summary ORDER BY contract_number DESC"))
             summary_data = [dict(row) for row in result.fetchall()]
         return summary_data
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
         return None
-
-
-
 
 @app.route('/summary')
 @login_required
