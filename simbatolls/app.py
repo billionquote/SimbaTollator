@@ -372,18 +372,18 @@ def update_or_insert_summary(summary):
         with engine.connect() as conn:
             transaction = conn.begin()
             for index, row in summary.iterrows():
-                # Prepare parameters ensuring keys match SQL placeholders
+                # Extract each field as a scalar explicitly; use `iloc[0]` if necessary
                 params = {
-                    'contract_number': row['contract_number'],
-                    'num_of_rows': row['num_of_rows'],
-                    'sum_of_toll_cost': row['sum_of_toll_cost'],
-                    'total_toll_contract_cost': row['total_toll_contract_cost'].replace('$', '').replace(',', ''),  # Strip currency format
+                    'contract_number': int(row['contract_number']),  # Ensure integer conversion if necessary
+                    'num_of_rows': int(row['num_of_rows']),
+                    'sum_of_toll_cost': str(row['sum_of_toll_cost']).replace('$', '').replace(',', ''),
+                    'total_toll_contract_cost': str(row['total_toll_contract_cost']).replace('$', '').replace(',', ''),
                     'pickup_date_time': row['pickup_date_time'],
                     'dropoff_date_time': row['dropoff_date_time'],
-                    'admin_fee': row['admin_fee']
+                    'admin_fee': float(row['admin_fee'].replace('$', '').replace(',', '')) if isinstance(row['admin_fee'], str) else float(row['admin_fee'])  # Handling potential string with currency format
                 }
                 
-                # Check if record exists
+                # Check if the record exists
                 existing = conn.execute(
                     text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
                     {'contract_number': params['contract_number']}
@@ -413,6 +413,7 @@ def update_or_insert_summary(summary):
         transaction.rollback()
         app.logger.error(f"Failed to update or insert summary: {e}")
         raise
+
 
 
 
