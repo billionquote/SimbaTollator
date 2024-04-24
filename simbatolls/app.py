@@ -271,12 +271,20 @@ def populate_summary_table(df):
     # Drop the 'admin_fee' column as it's now redundant
     #summary.drop(columns=['admin_fee'], inplace=True)
 
-    # Rename the columns for clarity
-    summary.rename(columns={'Res.': 'Contract Number', 'Num_of_Rows': 'Num of Rows'}, inplace=True)
         # Order by 'Contract Number'
     # Ensure that 'Contract Number' is treated as an integer for proper sorting
     summary['Contract Number'] = summary['Contract Number'].astype(int)
     summary = summary.sort_values(by='Contract Number', ascending=False)
+        # Rename the columns for clarity
+    summary = summary.rename(columns={
+        'Contract Number': 'contract_number',  # Ensuring this matches the model's field name
+        'Num of Rows': 'num_of_rows',
+        'Sum of Toll Cost': 'sum_of_toll_cost',
+        'Total Toll Contract cost': 'total_toll_contract_cost',
+        'Pickup Date Time': 'pickup_date_time',
+        'Dropoff Date Time': 'dropoff_date_time',
+        'Admin Fee': 'admin_fee'
+    })
     
     return summary, grand_total, admin_fee_total
 
