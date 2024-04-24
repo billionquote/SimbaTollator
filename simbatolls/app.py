@@ -267,7 +267,9 @@ def populate_summary_table(df):
     summary['Admin Fee'] = '$' + summary['admin_fee'].astype(float).round(2).map('{:,.2f}'.format)
     summary['Sum of Toll Cost'] = '$' + summary['Sum_of_Toll_Cost'].astype(float).map('{:,.2f}'.format)
     summary['Total Toll Contract cost'] = '$' + summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
-
+    summary=summary.rename(columns={
+        'Res.': 'Contract Number'
+    })
     
     summary['Contract Number'] = summary['Contract Number'].astype(int)
     summary = summary.sort_values(by='Contract Number', ascending=False)
