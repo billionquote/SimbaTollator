@@ -430,9 +430,9 @@ def summary():
         app.logger.warning("No summary data found or error occurred.")
         return render_template('summary.html', error="No data available.")
     # Calculate totals
-    total_admin_fee = sum(float(row['Admin Fee'].strip('$').replace(',', '')) if row['Admin Fee'] else 0 for row in summary_data)
-    total_sum_of_toll_cost = sum(float(row['Sum of Toll Cost'].strip('$').replace(',', '')) if row['Sum of Toll Cost'] else 0 for row in summary_data)
-    total_contract_toll_cost = sum(float(row['Total Toll Contract cost'].strip('$').replace(',', '')) if row['Total Toll Contract cost'] else 0 for row in summary_data)
+    total_admin_fee = sum(float(row['admin_fee'].strip('$').replace(',', '')) if row['admin_fee'] else 0 for row in summary_data)
+    total_sum_of_toll_cost = sum(float(row['sum_of_toll_cost'].strip('$').replace(',', '')) if row['sum_of_toll_cost'] else 0 for row in summary_data)
+    total_contract_toll_cost = sum(float(row['total_toll_contract_cost'].strip('$').replace(',', '')) if row['total_toll_contract_cost'] else 0 for row in summary_data)
 
     if summary_data:
         app.logger.info("Summary data fetched successfully: %s", summary_data)
@@ -465,13 +465,13 @@ def get_last_5_contracts():
     engine = app.db.engine  # Ensure you have this setup to access the db engine
     with engine.connect() as connection:
         query = """
-            SELECT DISTINCT "Contract Number" 
+            SELECT DISTINCT "contract_number" 
             FROM summary 
-            ORDER BY "Contract Number" DESC 
+            ORDER BY "contract_number" DESC 
             LIMIT 5
         """
         result = connection.execute(query)
-        last_5_contracts = [row['Contract Number'] for row in result.fetchall()]
+        last_5_contracts = [row['contract_number'] for row in result.fetchall()]
     return last_5_contracts
 
 
@@ -491,7 +491,7 @@ def search():
         with engine.connect() as connection:
             # Fetch summary record for the contract
             summary_result = connection.execute(
-                text("SELECT * FROM summary WHERE \"Contract Number\" = :cn"),
+                text("SELECT * FROM summary WHERE \"contract_number\" = :cn"),
                 {'cn': search_query}
             )
             summary_record = [{column: value for column, value in row.items()} for row in summary_result]
