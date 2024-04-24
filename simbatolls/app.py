@@ -268,11 +268,7 @@ def populate_summary_table(df):
     summary['Sum of Toll Cost'] = '$' + summary['Sum_of_Toll_Cost'].astype(float).map('{:,.2f}'.format)
     summary['Total Toll Contract cost'] = '$' + summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
 
-    # Drop the 'admin_fee' column as it's now redundant
-    #summary.drop(columns=['admin_fee'], inplace=True)
-
-        # Order by 'Contract Number'
-    # Ensure that 'Contract Number' is treated as an integer for proper sorting
+    
     summary['Contract Number'] = summary['Contract Number'].astype(int)
     summary = summary.sort_values(by='Contract Number', ascending=False)
         # Rename the columns for clarity
@@ -376,12 +372,12 @@ def update_or_insert_summary(summary):
             for index, row in summary.iterrows():
                 # Prepare parameters ensuring keys match SQL placeholders
                 params = {
-                    'contract_number': row['Contract Number'],
-                    'num_of_rows': row['Num of Rows'],
-                    'sum_of_toll_cost': row['Sum_of_Toll_Cost'],
-                    'total_toll_cost': row['Total Toll Contract cost'].replace('$', '').replace(',', ''),  # Strip currency format
-                    'pickup_time': row['Pickup Date Time'],
-                    'dropoff_time': row['Dropoff Date Time'],
+                    'contract_number': row['contract_number'],
+                    'num_of_rows': row['num_of_rows'],
+                    'sum_of_toll_cost': row['sum_of_toll_cost'],
+                    'total_toll_cost': row['total_toll_cost'].replace('$', '').replace(',', ''),  # Strip currency format
+                    'pickup_date_time': row['pickup_date_time'],
+                    'dropoff_date_time': row['dropoff_date_time'],
                     'admin_fee': row['admin_fee']
                 }
                 
@@ -398,8 +394,8 @@ def update_or_insert_summary(summary):
                         num_of_rows = :num_of_rows,
                         sum_of_toll_cost = :sum_of_toll_cost,
                         total_toll_contract_cost = :total_toll_cost,
-                        pickup_date_time = :pickup_time,
-                        dropoff_date_time = :dropoff_time,
+                        pickup_date_time = :pickup_date_time,
+                        dropoff_date_time = :dropoff_date_time,
                         admin_fee = :admin_fee
                         WHERE contract_number = :contract_number
                     """), params)
@@ -408,7 +404,7 @@ def update_or_insert_summary(summary):
                     conn.execute(text("""
                         INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
                                              total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
-                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_time, :dropoff_time, :admin_fee)
+                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_date_time, :dropoff_date_time, :admin_fee)
                     """), params)
             transaction.commit()
     except Exception as e:
