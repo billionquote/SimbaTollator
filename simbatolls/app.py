@@ -276,7 +276,7 @@ def populate_summary_table(df):
         # Rename the columns for clarity
     summary = summary.rename(columns={
         'Contract Number': 'contract_number',  # Ensuring this matches the model's field name
-        'Num of Rows': 'num_of_rows',
+        'Num_of_Rows': 'num_of_rows',
         'Sum of Toll Cost': 'sum_of_toll_cost',
         'Total Toll Contract cost': 'total_toll_contract_cost',
         'Pickup Date Time': 'pickup_date_time',
