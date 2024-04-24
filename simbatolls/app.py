@@ -377,7 +377,7 @@ def update_or_insert_summary(summary):
                     'contract_number': row['contract_number'],
                     'num_of_rows': row['num_of_rows'],
                     'sum_of_toll_cost': row['sum_of_toll_cost'],
-                    'total_toll_cost': row['total_toll_cost'].replace('$', '').replace(',', ''),  # Strip currency format
+                    'total_toll_contract_cost': row['total_toll_contract_cost'].replace('$', '').replace(',', ''),  # Strip currency format
                     'pickup_date_time': row['pickup_date_time'],
                     'dropoff_date_time': row['dropoff_date_time'],
                     'admin_fee': row['admin_fee']
@@ -395,7 +395,7 @@ def update_or_insert_summary(summary):
                         UPDATE summary SET
                         num_of_rows = :num_of_rows,
                         sum_of_toll_cost = :sum_of_toll_cost,
-                        total_toll_contract_cost = :total_toll_cost,
+                        total_toll_contract_cost = :total_toll_contract_cost,
                         pickup_date_time = :pickup_date_time,
                         dropoff_date_time = :dropoff_date_time,
                         admin_fee = :admin_fee
@@ -406,7 +406,7 @@ def update_or_insert_summary(summary):
                     conn.execute(text("""
                         INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
                                              total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
-                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_date_time, :dropoff_date_time, :admin_fee)
+                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_contract_cost, :pickup_date_time, :dropoff_date_time, :admin_fee)
                     """), params)
             transaction.commit()
     except Exception as e:
