@@ -416,6 +416,7 @@ def fetch_summary_data():
         with engine.connect() as connection:
             result = connection.execute(text("SELECT * FROM summary ORDER BY contract_number DESC"))
             summary_data = [dict(row) for row in result.fetchall()]
+            app.logger.debug(f"Fetched summary data: {summary_data}")  # Log fetched data
         return summary_data
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
@@ -424,9 +425,10 @@ def fetch_summary_data():
 @app.route('/summary')
 @login_required
 def summary():
-    # Fetch summary data from the database
     summary_data = fetch_summary_data()
-
+    if summary_data is None or not summary_data:
+        app.logger.warning("No summary data found or error occurred.")
+        return render_template('summary.html', error="No data available.")
     # Calculate totals
     total_admin_fee = sum(float(row['Admin Fee'].strip('$').replace(',', '')) if row['Admin Fee'] else 0 for row in summary_data)
     total_sum_of_toll_cost = sum(float(row['Sum of Toll Cost'].strip('$').replace(',', '')) if row['Sum of Toll Cost'] else 0 for row in summary_data)
