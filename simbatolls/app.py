@@ -389,25 +389,33 @@ def update_or_insert_summary(summary):
         with engine.connect() as conn:
             transaction = conn.begin()
             for index, row in summary.iterrows():
-                # Ensure correct extraction and conversion of admin_fee
-                admin_fee_value = float(row['admin_fee'].replace('$', '').replace(',', '').strip()) if isinstance(row['admin_fee'], str) else row['admin_fee']
-                
+                # Ensure that admin_fee is a scalar. Use .item() if it's a single value in a Series.
+                admin_fee = row['admin_fee'].replace('$', '').replace(',', '').strip()
+                if isinstance(admin_fee, pd.Series):
+                    admin_fee = admin_fee.item()  # Convert to scalar
+                admin_fee = float(admin_fee)  # Ensure it's a float
+
                 params = {
                     'contract_number': int(row['contract_number']),
                     'num_of_rows': int(row['num_of_rows']),
                     'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
                     'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
-                    'pickup_date_time': pd.to_datetime(row['pickup_date_time']),
-                    'dropoff_date_time': pd.to_datetime(row['dropoff_date_time']),
-                    'admin_fee': admin_fee_value
+                    'pickup_date_time': row['pickup_date_time'],
+                    'dropoff_date_time': row['dropoff_date_time'],
+                    'admin_fee': admin_fee
                 }
 
+                # Debugging output to verify the parameters before executing SQL
+                print("SQL Params:", params)
+
+                # Check for existing record
                 existing = conn.execute(
                     text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
                     {'contract_number': params['contract_number']}
                 ).scalar()
 
                 if existing:
+                    print("Updating record for contract_number:", params['contract_number'])
                     conn.execute(text("""
                         UPDATE summary SET
                         num_of_rows = :num_of_rows,
@@ -419,17 +427,18 @@ def update_or_insert_summary(summary):
                         WHERE contract_number = :contract_number
                     """), params)
                 else:
+                    print("Inserting new record for contract_number:", params['contract_number'])
                     conn.execute(text("""
-                        INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
+                        INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost,
                                              total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
-                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_contract_cost, :pickup_date_time, :dropoff_date_time, :admin_fee)
+                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_contract_cost,
+                                :pickup_date_time, :dropoff_date_time, :admin_fee)
                     """), params)
             transaction.commit()
     except Exception as e:
         transaction.rollback()
         print(f"Failed to update or insert summary: {e}")
         raise
-
 
 def fetch_summary_data():
     try:
