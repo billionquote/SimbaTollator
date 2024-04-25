@@ -552,7 +552,7 @@ def search():
                     column("LPN/Tag number").label("lpn_tag_number"),
                     column("Vehicle Class").label("vehicle_class"),
                     column("Trip Cost").label("trip_cost"),
-                    column("Rego").label("rego"),
+                    column("Rego").label("rego")
                 ).where(RawData.res == search_query)
             )
             raw_records = [{
