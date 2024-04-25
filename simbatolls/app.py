@@ -510,12 +510,12 @@ app.jinja_env.filters['compact_number'] = compact_number_format
 def get_last_5_contracts():
     engine = db.engine  # Ensure you have this setup to access the db engine
     with engine.connect() as connection:
-        query = """
+        query = text("""
             SELECT DISTINCT "contract_number" 
             FROM summary 
             ORDER BY "contract_number" DESC 
             LIMIT 5
-        """
+        """)
         result = connection.execute(query)
         last_5_contracts = [row['contract_number'] for row in result.fetchall()]
     return last_5_contracts
@@ -533,7 +533,7 @@ def search():
     
     if search_query:
         # Use SQLAlchemy to handle the database connection and querying
-        engine = app.db.engine  # Make sure you have configured your db instance with SQLAlchemy
+        engine = app.db.engine
         with engine.connect() as connection:
             # Fetch summary record for the contract
             summary_result = connection.execute(
@@ -566,6 +566,7 @@ def search():
     else:
         # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
+
 
 
 
