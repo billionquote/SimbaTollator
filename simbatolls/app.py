@@ -444,17 +444,17 @@ def fetch_summary_data():
         engine = db.engine
         with engine.connect() as connection:
             result = connection.execute(text("SELECT * FROM summary ORDER BY contract_number DESC"))
-            # Fetch all results at once
-            rows = result.fetchall()
-            # Convert rows to a list of dictionaries
-            summary_data = [dict(row) for row in rows]
+            summary_data = []
+            columns = result.keys()  # This will fetch the column names
+            for row in result.fetchall():
+                # Construct dictionary from row using column names
+                row_dict = {col: row[col] for col in columns}
+                summary_data.append(row_dict)
             app.logger.debug(f"Fetched summary data: {summary_data}")
         return summary_data
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
-       
         return None
-
 
 
 
