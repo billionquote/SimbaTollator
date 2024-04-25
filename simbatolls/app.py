@@ -557,7 +557,7 @@ def search():
                 ).where(text('"Res." = :res_value')).params(res_value=search_query)
             )
             raw_records = [{
-                'Toll Date/Time': row.start_date,
+                'Start Date': row.start_date,
                 'Details': row.details,
                 'LPN/Tag number': row.lpn_tag_number,
                 'Vehicle Class': row.vehicle_class,
