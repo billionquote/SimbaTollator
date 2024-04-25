@@ -545,15 +545,23 @@ def search():
 
             # Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
-                select(RawData).where(RawData.res == search_query)
+                select([
+                    RawData.id.label('id'),
+                    RawData.columns.get('Start Date').label('start_date'),
+                    RawData.details.label('details'),
+                    RawData.columns.get('LPN/Tag number').label('lpn_tag_number'),
+                    RawData.columns.get('Vehicle Class').label('vehicle_class'),
+                    RawData.columns.get('Trip Cost').label('trip_cost'),
+                    RawData.rego.label('rego')
+                ]).where(RawData.res == search_query)
             )
             raw_records = [{
-                'Toll Date/Time': getattr(row, "Start Date"), 
-                'Details': getattr(row, "details"), 
-                'LPN/Tag number': getattr(row, "LPN/Tag number"), 
-                'Vehicle Class': getattr(row, "Vehicle Class"), 
-                'Trip Cost': f"${getattr(row, 'Trip Cost'):,.2f}", 
-                'Rego': getattr(row, "rego")
+                'Toll Date/Time': row.start_date, 
+                'Details': row.details, 
+                'LPN/Tag number': row.lpn_tag_number, 
+                'Vehicle Class': row.vehicle_class, 
+                'Trip Cost': f"${float(row.trip_cost):,.2f}", 
+                'Rego': row.rego
             } for row in raw_result.scalars().all()]
 
         finally:
