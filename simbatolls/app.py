@@ -544,16 +544,17 @@ def search():
             summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
 
             # Fetch raw records for the contract using ORM approach
+# Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
-                select([
+                select(
                     RawData.id,
-                    text('"Start Date"').label("start_date"),
-                    text('"Details"').label("details"),
-                    text('"LPN/Tag number"').label("lpn_tag_number"),
-                    text('"Vehicle Class"').label("vehicle_class"),
-                    text('"Trip Cost"').label("trip_cost"),
-                    text('"Rego"').label("rego")
-                ]).where(text('"Res." = :res_value')).params(res_value=search_query)
+                    column("Start Date").label("start_date"),
+                    column("Details").label("details"),
+                    column("LPN/Tag number").label("lpn_tag_number"),
+                    column("Vehicle Class").label("vehicle_class"),
+                    column("Trip Cost").label("trip_cost"),
+                    column("Rego").label("rego")
+                ).where(text('"Res." = :res_value')).params(res_value=search_query)
             )
             raw_records = [{
                 'Toll Date/Time': row.start_date,
