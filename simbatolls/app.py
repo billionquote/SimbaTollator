@@ -444,14 +444,19 @@ def fetch_summary_data():
         engine = db.engine
         with engine.connect() as connection:
             result = connection.execute(text("SELECT * FROM summary ORDER BY contract_number DESC"))
-            # Convert result rows to dictionaries
-            summary_data = [dict(row) for row in result]
+            # Check what the row actually contains
+            summary_data = []
+            for row in result:
+                # Convert each SQL result row to a dictionary
+                row_data = {column: value for column, value in row.items()}
+                summary_data.append(row_data)
             app.logger.debug(f"Fetched summary data: {summary_data}")  # Log fetched data
         return summary_data
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
         # This will print a stack trace in case of error
         return None
+
 
 
 @app.route('/summary')
