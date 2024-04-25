@@ -519,7 +519,7 @@ def get_last_5_contracts():
             .limit(5)
         )
         # Fetch the results as a list of tuples and extract the contract numbers
-        last_5_contracts = [row.contract_number for row in result.scalars().all()]
+        last_5_contracts = [row for row in result.scalars().all()]
         return last_5_contracts
     except Exception as e:
         app.logger.error(f"Error fetching the last 5 contracts: {e}")
@@ -542,7 +542,8 @@ def search():
                 text("SELECT * FROM summary WHERE \"contract_number\" = :cn"),
                 {'cn': search_query}
             )
-            summary_record = [{column: value for column, value in row.items()} for row in summary_result]
+            summary_record = [{column: value for column, value in dict(row).items()} for row in summary_result]
+
 
             # Fetch raw records for the contract with specific columns
             raw_result = connection.execute(
