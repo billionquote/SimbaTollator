@@ -112,7 +112,7 @@ class Summary(db.Model):
     contract_number = db.Column(db.Integer, primary_key=True)
     num_of_rows = db.Column(db.Integer)
     sum_of_toll_cost = db.Column(db.String(50))
-    total_toll_contract_cost = db.Column(db.Floattring(50))
+    total_toll_contract_cost = db.Column(db.String(50))
     pickup_date_time = db.Column(db.DateTime)
     dropoff_date_time = db.Column(db.DateTime)
     admin_fee = db.Column(db.String(50))
