@@ -226,13 +226,13 @@
                     <tbody>
                         {% for record in summary_record %}
                         <tr>
-                            <td>{{ record['Contract Number'] }}</td>
-                            <td>{{ record['Pickup Date Time'] }}</td>
-                            <td>{{ record['Dropoff Date Time'] }}</td>
-                            <td>{{ record['Num of Rows'] }}</td>
-                            <td>{{ record['Admin Fee'] }}</td>
-                            <td>{{ record['Sum of Toll Cost'] }}</td>
-                            <td>{{ record['Total Toll Contract cost'] }}</td>
+                            <td>{{ record['contract_number'] }}</td>
+                            <td>{{ row['pickup_date_time'] }}</td>
+                            <td>{{ row['dropoff_date_time'] }}</td>
+                            <td>{{ row['num_of_rows'] }}</td>
+                            <td>{{ row['admin_fee'] }}</td>
+                            <td>{{ row['sum_of_toll_cost'] }}</td>
+                            <td>{{ row['total_toll_contract_cost'] }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
