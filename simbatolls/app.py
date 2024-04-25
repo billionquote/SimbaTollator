@@ -527,44 +527,44 @@ def get_last_5_contracts():
     finally:
         session.close()
 
+
 @app.route('/search', methods=['POST', 'GET'])
 @login_required
 def search():
     last_5_contracts = get_last_5_contracts()
-    search_query = request.form.get('search_query') if request.method is 'POST' else request.args.get('search_query', None)
+    search_query = request.form.get('search_query') if request.method == 'POST' else request.args.get('search_query', None)
     
     if search_query:
-        engine = db.engine
-        with engine.connect() as connection:
-            summary_result = connection.execute(
-                text("SELECT * FROM summary WHERE \"contract_number\" = :cn"),
-                {'cn': search_query}
+        session = Session(bind=db.engine)
+        try:
+            # Fetch summary record for the contract
+            summary_result = session.execute(
+                select(Summary).where(Summary.contract_number == search_query)
             )
-            summary_record = [{column: value for column, value in row.items()} for row in summary_result]
+            summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
 
-            # Debugging: Print out what you get from summary_result
-            print("Summary Record Data:", summary_record)
-
-            raw_result = connection.execute(
-                text("""
-                    SELECT DISTINCT "Start Date" as "Toll Date/Time", "Details", "LPN/Tag number", "Vehicle Class", "Trip Cost", "Rego"
-                    FROM rawdata
-                    WHERE "Res." = :res
-                """),
-                {'res': search_query}
+            # Fetch raw records for the contract
+            raw_result = session.execute(
+                select(RawData).where(RawData.res == search_query)
             )
-            
-            # Debugging: Print or log the raw results to see what's actually fetched
-            for row in raw_result:
-                print({column: value for column, value in row.items()})
+            raw_records = [{
+                'Toll Date/Time': row.start_date, 
+                'Details': row.details, 
+                'LPN/Tag number': row.lpn_tag_number, 
+                'Vehicle Class': row.vehicle_class, 
+                'Trip Cost': f"${float(row.trip_cost):,.2f}", 
+                'Rego': row.rego
+            } for row in raw_result.scalars().all()]
 
-            raw_records = [{column: value for column, value in row.items()} for row in raw_result]
+        finally:
+            session.close()
 
+        # Pass the converted records to your template
         return render_template('search_results.html', summary_record=summary_record, raw_records=raw_records, search_query=search_query, last_5_contracts=last_5_contracts)
 
     else:
+        # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
-
 
 if __name__ == '__main__':
     db.create_all()
