@@ -111,11 +111,11 @@ class Summary(db.Model):
 
     contract_number = db.Column(db.Integer, primary_key=True)
     num_of_rows = db.Column(db.Integer)
-    sum_of_toll_cost = db.Column(db.Float)
-    total_toll_contract_cost = db.Column(db.Float)
+    sum_of_toll_cost = db.Column(db.String(50))
+    total_toll_contract_cost = db.Column(db.Floattring(50))
     pickup_date_time = db.Column(db.DateTime)
     dropoff_date_time = db.Column(db.DateTime)
-    admin_fee = db.Column(db.Float)
+    admin_fee = db.Column(db.String(50))
 
     def __repr__(self):
         return f"<Summary contract_number={self.contract_number} num_of_rows={self.num_of_rows}>"
@@ -395,11 +395,11 @@ def update_or_insert_summary(summary):
                 params = {
                     'contract_number': int(row['contract_number']),
                     'num_of_rows': int(row['num_of_rows']),
-                    'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
-                    'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
+                    'sum_of_toll_cost': str(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
+                    'total_toll_contract_cost': str(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
                     'pickup_date_time': pd.to_datetime(row['pickup_date_time']).strftime('%Y-%m-%d %H:%M:%S'),  # Convert to string for SQL
                     'dropoff_date_time': pd.to_datetime(row['dropoff_date_time']).strftime('%Y-%m-%d %H:%M:%S'),  # Convert to string for SQL
-                    'admin_fee': float(row['admin_fee'].replace('$', '').replace(',', ''))
+                    'admin_fee': str(row['admin_fee'].replace('$', '').replace(',', ''))
                 }
 
                 # Debug print to check parameter types and values
