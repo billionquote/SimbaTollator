@@ -533,7 +533,7 @@ def get_last_5_contracts():
 def search():
     last_5_contracts = get_last_5_contracts()
     search_query = request.form.get('search_query') if request.method == 'POST' else request.args.get('search_query', None)
-    
+
     if search_query:
         session = Session(bind=db.engine)
         try:
@@ -545,7 +545,7 @@ def search():
 
             # Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
-                select([
+                select(
                     RawData.id,
                     column("Start Date").label("start_date"),
                     RawData.details,
@@ -553,14 +553,14 @@ def search():
                     column("Vehicle Class").label("vehicle_class"),
                     column("Trip Cost").label("trip_cost"),
                     RawData.rego
-                ]).where(RawData.res == search_query)
+                ).where(RawData.res == search_query)
             )
             raw_records = [{
-                'Toll Date/Time': row.start_date, 
-                'Details': row.details, 
-                'LPN/Tag number': row.lpn_tag_number, 
-                'Vehicle Class': row.vehicle_class, 
-                'Trip Cost': f"${float(row.trip_cost):,.2f}", 
+                'Toll Date/Time': row.start_date,
+                'Details': row.details,
+                'LPN/Tag number': row.lpn_tag_number,
+                'Vehicle Class': row.vehicle_class,
+                'Trip Cost': f"${float(row.trip_cost):,.2f}",
                 'Rego': row.rego
             } for row in raw_result.scalars().all()]
 
