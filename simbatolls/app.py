@@ -273,7 +273,7 @@ def populate_summary_table(df):
     
     summary['Sum_of_Toll_Cost'] = summary['Sum_of_Toll_Cost'].round(2)
     summary['Total Toll Contract cost'] = summary['Total Toll Contract cost'].round(2)
-    summary['Admin Fee'] = '$' + summary['admin_fee'].astype(float).round(2).map('{:,.2f}'.format)
+    summary['admin_fee'] = '$' + summary['admin_fee'].astype(float).round(2).map('{:,.2f}'.format)
     summary['Sum of Toll Cost'] = '$' + summary['Sum_of_Toll_Cost'].astype(float).map('{:,.2f}'.format)
     summary['Total Toll Contract cost'] = '$' + summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
 
@@ -300,7 +300,7 @@ def populate_summary_table(df):
         'Total Toll Contract cost': 'total_toll_contract_cost',
         'Pickup Date Time': 'pickup_date_time',
         'Dropoff Date Time': 'dropoff_date_time',
-        'Admin Fee': 'admin_fee'
+        'admin_fee': 'admin_fee'
     })
     return summary, grand_total, admin_fee_total
 
