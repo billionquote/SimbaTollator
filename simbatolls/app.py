@@ -546,13 +546,13 @@ def search():
             # Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
                 select([
-                    RawData.id.label('id'),
-                    RawData.columns.get('Start Date').label('start_date'),
-                    RawData.details.label('details'),
-                    RawData.columns.get('LPN/Tag number').label('lpn_tag_number'),
-                    RawData.columns.get('Vehicle Class').label('vehicle_class'),
-                    RawData.columns.get('Trip Cost').label('trip_cost'),
-                    RawData.rego.label('rego')
+                    RawData.id,
+                    column("Start Date").label("start_date"),
+                    RawData.details,
+                    column("LPN/Tag number").label("lpn_tag_number"),
+                    column("Vehicle Class").label("vehicle_class"),
+                    column("Trip Cost").label("trip_cost"),
+                    RawData.rego
                 ]).where(RawData.res == search_query)
             )
             raw_records = [{
