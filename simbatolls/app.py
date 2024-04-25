@@ -444,21 +444,18 @@ def fetch_summary_data():
         engine = db.engine
         with engine.connect() as connection:
             result = connection.execute(text("SELECT * FROM summary ORDER BY contract_number DESC"))
-            print(f'RESULT FROM FETCH SUMMARY IS: {result}')
-            summary_data = []
-            for row in result:
-                try:
-                    row_data = {column: value for column, value in row.items()}
-                    summary_data.append(row_data)
-                except KeyError as e:
-                    app.logger.error(f"Missing column in fetch: {e}")
-                    continue  # Skip this row or handle the missing column appropriately
+            # Fetch all results at once
+            rows = result.fetchall()
+            # Convert rows to a list of dictionaries
+            summary_data = [dict(row) for row in rows]
             app.logger.debug(f"Fetched summary data: {summary_data}")
         return summary_data
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
        
         return None
+
+
 
 
 @app.route('/summary')
