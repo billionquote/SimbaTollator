@@ -390,7 +390,7 @@ def update_or_insert_summary(summary):
             transaction = conn.begin()
             for index, row in summary.iterrows():
                 # Ensure that admin_fee is a scalar. Use .item() if it's a single value in a Series.
-                admin_fee = row['admin_fee'].replace('$', '').replace(',', '').strip()
+                admin_fee = row['admin_fee'].replace('$', '').replace(',', '')
                 if isinstance(admin_fee, pd.Series):
                     admin_fee = admin_fee.item()  # Convert to scalar
                 admin_fee = float(admin_fee)  # Ensure it's a float
