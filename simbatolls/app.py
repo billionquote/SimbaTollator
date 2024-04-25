@@ -444,12 +444,15 @@ def fetch_summary_data():
         engine = db.engine
         with engine.connect() as connection:
             result = connection.execute(text("SELECT * FROM summary ORDER BY contract_number DESC"))
-            summary_data = [dict(row) for row in result.fetchall()]
+            # Convert result rows to dictionaries
+            summary_data = [dict(row) for row in result]
             app.logger.debug(f"Fetched summary data: {summary_data}")  # Log fetched data
         return summary_data
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
+        # This will print a stack trace in case of error
         return None
+
 
 @app.route('/summary')
 @login_required

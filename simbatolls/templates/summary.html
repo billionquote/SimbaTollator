@@ -205,13 +205,13 @@
                     <!-- Populate summary table rows dynamically -->
                     {% for row in summary %}
                         <tr>
-                            <td><a href="{{ url_for('search', search_query=row['Contract Number']) }}" class="link-primary">{{ row['Contract Number'] }}</a></td>
-                            <td>{{ row['Pickup Date Time'] }}</td>
-                            <td>{{ row['Dropoff Date Time'] }}</td>
-                            <td>{{ row['Num of Rows'] }}</td>
-                            <td>{{ row['Admin Fee'] }}</td>
-                            <td>{{ row['Sum of Toll Cost'] }}</td>
-                            <td>{{ row['Total Toll Contract cost'] }}</td>
+                            <td><a href="{{ url_for('search', search_query=row['contract_number']) }}" class="link-primary">{{ row['contract_number'] }}</a></td>
+                            <td>{{ row['pickup_date_time'] }}</td>
+                            <td>{{ row['dropoff_date_time'] }}</td>
+                            <td>{{ row['num_of_rows'] }}</td>
+                            <td>{{ row['admin_fee'] }}</td>
+                            <td>{{ row['sum_of_toll_cost'] }}</td>
+                            <td>{{ row['total_toll_contract_cost'] }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
