@@ -8,6 +8,7 @@ import time
 import sqlite3
 import tempfile
 from sqlalchemy.sql import text
+import traceback2
 #from flask import current_app as app
 
 
@@ -388,67 +389,53 @@ def update_or_insert_summary(summary):
         engine = db.engine
         with engine.connect() as conn:
             transaction = conn.begin()
-            for index, row in summary.iterrows():
-                # Extract admin_fee and ensure it's a scalar float
-                admin_fee = row['admin_fee']
-                if isinstance(admin_fee, pd.Series):
-                    admin_fee = admin_fee.iloc[0]  # Get the first item if it's still a Series
-                admin_fee = float(admin_fee.replace('$', '').replace(',', '').strip())  # Ensure it's a float
+            try:
+                for index, row in summary.iterrows():
+                    admin_fee = float(row['admin_fee'].replace('$', '').replace(',', '').strip())
+                    pickup_date_time = row['pickup_date_time'].to_pydatetime() if isinstance(row['pickup_date_time'], pd.Timestamp) else row['pickup_date_time']
+                    dropoff_date_time = row['dropoff_date_time'].to_pydatetime() if isinstance(row['dropoff_date_time'], pd.Timestamp) else row['dropoff_date_time']
+                    
+                    params = {
+                        'contract_number': int(row['contract_number']),
+                        'num_of_rows': int(row['num_of_rows']),
+                        'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
+                        'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
+                        'pickup_date_time': pickup_date_time,
+                        'dropoff_date_time': dropoff_date_time,
+                        'admin_fee': admin_fee
+                    }
+                    
+                    print("SQL Params:", params)  # Debugging output
 
-                # Ensure datetime objects are properly handled
-                pickup_date_time = row['pickup_date_time']
-                dropoff_date_time = row['dropoff_date_time']
-                if isinstance(pickup_date_time, pd.Timestamp):
-                    pickup_date_time = pickup_date_time.to_pydatetime()
-                if isinstance(dropoff_date_time, pd.Timestamp):
-                    dropoff_date_time = dropoff_date_time.to_pydatetime()
-
-                # Prepare parameters for SQL query
-                params = {
-                    'contract_number': int(row['contract_number']),
-                    'num_of_rows': int(row['num_of_rows']),
-                    'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
-                    'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
-                    'pickup_date_time': pickup_date_time,
-                    'dropoff_date_time': dropoff_date_time,
-                    'admin_fee': admin_fee
-                }
-
-                # Print parameters for debugging
-                print("SQL Params:", params)
-
-                # Execute SQL based on existence check
-                existing = conn.execute(
-                    text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
-                    {'contract_number': params['contract_number']}
-                ).scalar()
-
-                if existing:
-                    conn.execute(text("""
-                        UPDATE summary SET
-                        num_of_rows = :num_of_rows,
-                        sum_of_toll_cost = :sum_of_toll_cost,
-                        total_toll_contract_cost = :total_toll_contract_cost,
-                        pickup_date_time = :pickup_date_time,
-                        dropoff_date_time = :dropoff_date_time,
-                        admin_fee = :admin_fee
-                        WHERE contract_number = :contract_number
-                    """), params)
-                else:
-                    conn.execute(text("""
-                        INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
-                                             total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
-                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_contract_cost, 
-                                :pickup_date_time, :dropoff_date_time, :admin_fee)
-                    """), params)
-            transaction.commit()
+                    existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
+                    
+                    if existing:
+                        conn.execute(text("""
+                            UPDATE summary SET
+                            num_of_rows = :num_of_rows,
+                            sum_of_toll_cost = :sum_of_toll_cost,
+                            total_toll_contract_cost = :total_toll_contract_cost,
+                            pickup_date_time = :pickup_date_time,
+                            dropoff_date_time = :dropoff_date_time,
+                            admin_fee = :admin_fee
+                            WHERE contract_number = :contract_number
+                        """), params)
+                    else:
+                        conn.execute(text("""
+                            INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
+                                                 total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
+                            VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_contract_cost, 
+                                    :pickup_date_time, :dropoff_date_time, :admin_fee)
+                        """), params)
+                transaction.commit()
+            except Exception as e:
+                print("Transaction failed:", e)
+                transaction.rollback()
+                raise
     except Exception as e:
-        if transaction is active:
-            transaction.rollback()
-        print(f"Failed to update or insert summary: {e}")
+        print("Failed to update or insert summary:", e)
+        traceback.print_exc()  # This will print stack trace to debug the error
         raise
-
-
 
 def fetch_summary_data():
     try:
