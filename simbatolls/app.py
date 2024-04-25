@@ -531,21 +531,20 @@ def get_last_5_contracts():
 @login_required
 def search():
     last_5_contracts = get_last_5_contracts()
-    search_query = request.form.get('search_query') if request.method == 'POST' else request.args.get('search_query', None)
+    search_query = request.form.get('search_query') if request.method is 'POST' else request.args.get('search_query', None)
     
     if search_query:
-        # Use SQLAlchemy to handle the database connection and querying
         engine = db.engine
         with engine.connect() as connection:
-            # Fetch summary record for the contract
             summary_result = connection.execute(
                 text("SELECT * FROM summary WHERE \"contract_number\" = :cn"),
                 {'cn': search_query}
             )
-            summary_record = [{column: value for column, value in dict(row).items()} for row in summary_result]
+            summary_record = [{column: value for column, value in row.items()} for row in summary_result]
 
+            # Debugging: Print out what you get from summary_result
+            print("Summary Record Data:", summary_record)
 
-            # Fetch raw records for the contract with specific columns
             raw_result = connection.execute(
                 text("""
                     SELECT DISTINCT "Start Date" as "Toll Date/Time", "Details", "LPN/Tag number", "Vehicle Class", "Trip Cost", "Rego"
@@ -554,23 +553,17 @@ def search():
                 """),
                 {'res': search_query}
             )
+            
+            # Debugging: Print or log the raw results to see what's actually fetched
+            for row in raw_result:
+                print({column: value for column, value in row.items()})
+
             raw_records = [{column: value for column, value in row.items()} for row in raw_result]
 
-            # Format 'Trip Cost' to include a dollar sign
-            for record in raw_records:
-                try:
-                    record['Trip Cost'] = f"${float(record['Trip Cost']):,.2f}"
-                except ValueError:
-                    pass  # In case 'Trip Cost' is not a valid float, keep it as is or handle appropriately.
-
-        # Pass the converted records to your template
         return render_template('search_results.html', summary_record=summary_record, raw_records=raw_records, search_query=search_query, last_5_contracts=last_5_contracts)
 
     else:
-        # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
-
-
 
 
 if __name__ == '__main__':
