@@ -535,7 +535,7 @@ def search():
     
     if search_query:
         # Use SQLAlchemy to handle the database connection and querying
-        engine = app.db.engine
+        engine = db.engine
         with engine.connect() as connection:
             # Fetch summary record for the contract
             summary_result = connection.execute(
