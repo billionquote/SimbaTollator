@@ -30,6 +30,8 @@ psycopg2-binary = "^2.9.9"
 flask-migrate = "^4.0.7"
 python-dotenv = "^1.0.1"
 traceback2 = "^1.4.0"
+redis = "^5.0.4"
+rq = "^1.16.1"
 
 
 [tool.poetry.group.dev.dependencies]

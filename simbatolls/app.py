@@ -508,19 +508,24 @@ def compact_number_format(value):
 app.jinja_env.filters['compact_number'] = compact_number_format
 
 def get_last_5_contracts():
-    engine = db.engine  # Ensure you have this setup to access the db engine
-    with engine.connect() as connection:
-        query = text("""
-            SELECT DISTINCT "contract_number" 
-            FROM summary 
-            ORDER BY "contract_number" DESC 
-            LIMIT 5
-        """)
-        result = connection.execute(query)
-        # Ensure that rows are converted to dictionaries if they aren't already
-        last_5_contracts = [dict(row)['contract_number'] for row in result.fetchall()]
-    return last_5_contracts
-
+    # Assuming 'Summary' is your ORM model and 'contract_number' is a column in it
+    session = Session(bind=db.engine)
+    try:
+        # Using the ORM approach to execute a query
+        result = session.execute(
+            select(Summary.contract_number)
+            .distinct()
+            .order_by(Summary.contract_number.desc())
+            .limit(5)
+        )
+        # Fetch the results as a list of tuples and extract the contract numbers
+        last_5_contracts = [row.contract_number for row in result.scalars().all()]
+        return last_5_contracts
+    except Exception as e:
+        app.logger.error(f"Error fetching the last 5 contracts: {e}")
+        return []
+    finally:
+        session.close()
 
 @app.route('/search', methods=['POST', 'GET'])
 @login_required

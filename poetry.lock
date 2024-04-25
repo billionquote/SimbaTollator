@@ -59,6 +59,17 @@ astroid = ["astroid (>=1,<2)", "astroid (>=2,<4)"]
 test = ["astroid (>=1,<2)", "astroid (>=2,<4)", "pytest"]
 
 [[package]]
+name = "async-timeout"
+version = "4.0.3"
+description = "Timeout context manager for asyncio programs"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "async-timeout-4.0.3.tar.gz", hash = "sha256:4640d96be84d82d02ed59ea2b7105a0f7b33abe8703703cd0ab0bf87c427522f"},
+    {file = "async_timeout-4.0.3-py3-none-any.whl", hash = "sha256:7405140ff1230c310e51dc27b3145b9092d659ce68ff733fb0cefe3ee42be028"},
+]
+
+[[package]]
 name = "bcrypt"
 version = "4.1.2"
 description = "Modern password hashing for your software and your servers"
@@ -1776,6 +1787,39 @@ files = [
 cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
+name = "redis"
+version = "5.0.4"
+description = "Python client for Redis database and key-value store"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "redis-5.0.4-py3-none-any.whl", hash = "sha256:7adc2835c7a9b5033b7ad8f8918d09b7344188228809c98df07af226d39dec91"},
+    {file = "redis-5.0.4.tar.gz", hash = "sha256:ec31f2ed9675cc54c21ba854cfe0462e6faf1d83c8ce5944709db8a4700b9c61"},
+]
+
+[package.dependencies]
+async-timeout = {version = ">=4.0.3", markers = "python_full_version < \"3.11.3\""}
+
+[package.extras]
+hiredis = ["hiredis (>=1.0.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==20.0.1)", "requests (>=2.26.0)"]
+
+[[package]]
+name = "rq"
+version = "1.16.1"
+description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "rq-1.16.1-py3-none-any.whl", hash = "sha256:273de33f10bb9f18cd1e8ccc0a4e8dba2b8eb86a6ab2a91ae674f99bd68025f1"},
+    {file = "rq-1.16.1.tar.gz", hash = "sha256:d9a6314bc759a743b4a5d89aa467eaa3a31dbbc0a34bcd0ee82e8852d9ec166d"},
+]
+
+[package.dependencies]
+click = ">=5"
+redis = ">=3.5"
+
+[[package]]
 name = "setuptools"
 version = "69.2.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
@@ -2103,4 +2147,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "8869b6c2476e1ecf440a1784bd0636c2bab00ee8deda2072d8d5d85820cf3899"
+content-hash = "20b5913b31314d375af72c476d87ccc4632677cb6feb4ba543cd5da91878bd15"
