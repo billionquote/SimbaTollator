@@ -111,11 +111,11 @@ class Summary(db.Model):
 
     contract_number = db.Column(db.Integer, primary_key=True)
     num_of_rows = db.Column(db.Integer)
-    sum_of_toll_cost = db.Column(db.String(50))
-    total_toll_contract_cost = db.Column(db.String(50))
+    sum_of_toll_cost = db.Column(db.Float)
+    total_toll_contract_cost = db.Column(db.Float)
     pickup_date_time = db.Column(db.DateTime)
     dropoff_date_time = db.Column(db.DateTime)
-    admin_fee = db.Column(db.String(50))
+    admin_fee = db.Column(db.Float)
 
     def __repr__(self):
         return f"<Summary contract_number={self.contract_number} num_of_rows={self.num_of_rows}>"
@@ -386,24 +386,21 @@ def confirm_upload():
 def update_or_insert_summary(summary):
     try:
         engine = db.engine
-        print(engine)
         with engine.connect() as conn:
             transaction = conn.begin()
-            print(transaction)
             for index, row in summary.iterrows():
-                # Convert each field and ensure scalar values
+                # Ensure correct extraction and conversion of admin_fee
+                admin_fee_value = float(row['admin_fee'].replace('$', '').replace(',', '').strip()) if isinstance(row['admin_fee'], str) else row['admin_fee']
+                
                 params = {
                     'contract_number': int(row['contract_number']),
                     'num_of_rows': int(row['num_of_rows']),
-                    'sum_of_toll_cost': str(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
-                    'total_toll_contract_cost': str(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
-                    'pickup_date_time': pd.to_datetime(row['pickup_date_time']).strftime('%Y-%m-%d %H:%M:%S'),  # Convert to string for SQL
-                    'dropoff_date_time': pd.to_datetime(row['dropoff_date_time']).strftime('%Y-%m-%d %H:%M:%S'),  # Convert to string for SQL
-                    'admin_fee': str(row['admin_fee'].replace('$', '').replace(',', ''))
+                    'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
+                    'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
+                    'pickup_date_time': pd.to_datetime(row['pickup_date_time']),
+                    'dropoff_date_time': pd.to_datetime(row['dropoff_date_time']),
+                    'admin_fee': admin_fee_value
                 }
-
-                # Debug print to check parameter types and values
-                print("SQL Params:", params)
 
                 existing = conn.execute(
                     text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
@@ -411,8 +408,6 @@ def update_or_insert_summary(summary):
                 ).scalar()
 
                 if existing:
-                    # Debug print before SQL execution
-                    print("Updating record:", params)
                     conn.execute(text("""
                         UPDATE summary SET
                         num_of_rows = :num_of_rows,
@@ -424,8 +419,6 @@ def update_or_insert_summary(summary):
                         WHERE contract_number = :contract_number
                     """), params)
                 else:
-                    # Debug print before SQL execution
-                    print("Inserting record:", params)
                     conn.execute(text("""
                         INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
                                              total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
@@ -434,10 +427,8 @@ def update_or_insert_summary(summary):
             transaction.commit()
     except Exception as e:
         transaction.rollback()
-        print("Failed to update or insert summary:", e)
+        print(f"Failed to update or insert summary: {e}")
         raise
-
-
 
 
 def fetch_summary_data():
