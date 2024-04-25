@@ -389,16 +389,19 @@ def update_or_insert_summary(summary):
         with engine.connect() as conn:
             transaction = conn.begin()
             for index, row in summary.iterrows():
-                # Extract each field as a scalar explicitly
+                # Explicitly convert each field as needed and check data types
                 params = {
                     'contract_number': int(row['contract_number']),
                     'num_of_rows': int(row['num_of_rows']),
                     'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
                     'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
-                    'pickup_date_time': row['pickup_date_time'],
-                    'dropoff_date_time': row['dropoff_date_time'],
+                    'pickup_date_time': pd.to_datetime(row['pickup_date_time']),
+                    'dropoff_date_time': pd.to_datetime(row['dropoff_date_time']),
                     'admin_fee': float(row['admin_fee'].replace('$', '').replace(',', ''))
                 }
+
+                # Debug output to check the final parameters being sent to SQL
+                print("SQL Params:", params)
 
                 existing = conn.execute(
                     text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
@@ -427,6 +430,7 @@ def update_or_insert_summary(summary):
         transaction.rollback()
         app.logger.error(f"Failed to update or insert summary: {e}")
         raise
+
 
 
 def fetch_summary_data():
