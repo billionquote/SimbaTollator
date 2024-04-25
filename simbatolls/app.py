@@ -548,11 +548,11 @@ def search():
                 select(
                     RawData.id,
                     column("Start Date").label("start_date"),
-                    RawData.details,
+                    column("Details").label("details"),
                     column("LPN/Tag number").label("lpn_tag_number"),
                     column("Vehicle Class").label("vehicle_class"),
                     column("Trip Cost").label("trip_cost"),
-                    RawData.rego
+                    column("Rego").label("rego"),
                 ).where(RawData.res == search_query)
             )
             raw_records = [{
