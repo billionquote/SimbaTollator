@@ -517,13 +517,10 @@ def get_last_5_contracts():
             LIMIT 5
         """)
         result = connection.execute(query)
-        last_5_contracts = [row['contract_number'] for row in result.fetchall()]
+        # Ensure that rows are converted to dictionaries if they aren't already
+        last_5_contracts = [dict(row)['contract_number'] for row in result.fetchall()]
     return last_5_contracts
 
-
-#from flask import current_app as app, request, render_template
-from flask_login import login_required
-from sqlalchemy import text
 
 @app.route('/search', methods=['POST', 'GET'])
 @login_required
