@@ -9,6 +9,7 @@ import sqlite3
 import tempfile
 from sqlalchemy.sql import text
 import traceback2
+from sqlalchemy.orm import Session
 #from flask import current_app as app
 
 
@@ -440,43 +441,40 @@ def update_or_insert_summary(summary):
         raise
 
 def fetch_summary_data():
+    # Create a session object
+    session = Session(bind=db.engine)
     try:
-        engine = db.engine
-        with engine.connect() as connection:
-            result = connection.execute(text("SELECT * FROM summary ORDER BY contract_number DESC"))
-            summary_data = []
-            columns = result.keys()  # This will fetch the column names
-            for row in result.fetchall():
-                # Construct dictionary from row using column names
-                row_dict = {col: row[col] for col in columns}
-                summary_data.append(row_dict)
-            app.logger.debug(f"Fetched summary data: {summary_data}")
-        return summary_data
+        # Use ORM style query to fetch data
+        result = session.execute(select(Summary).order_by(Summary.contract_number.desc()))
+        # Extract models directly from result using scalars().all()
+        summary_data = result.scalars().all()
+        # Convert each ORM model to dictionary if needed
+        summary_dicts = [{column.name: getattr(summary, column.name) for column in Summary.__table__.columns} for summary in summary_data]
+        app.logger.debug(f"Fetched summary data: {summary_dicts}")
+        return summary_dicts
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
         return None
-
-
+    finally:
+        session.close()
 
 @app.route('/summary')
 @login_required
 def summary():
     summary_data = fetch_summary_data()
-    if summary_data is None or not summary_data:
+    if not summary_data:
         app.logger.warning("No summary data found or error occurred.")
         return render_template('summary.html', error="No data available.")
-    print(f'summary DATA BELOW: {summary_data[1]}')
-    # Calculate totals
-    total_admin_fee = sum(float(row['admin_fee'].strip('$').replace(',', '')) if row['admin_fee'] else 0 for row in summary_data)
-    total_sum_of_toll_cost = sum(float(row['sum_of_toll_cost'].strip('$').replace(',', '')) if row['sum_of_toll_cost'] else 0 for row in summary_data)
-    total_contract_toll_cost = sum(float(row['total_toll_contract_cost'].strip('$').replace(',', '')) if row['total_toll_contract_cost'] else 0 for row in summary_data)
+    
+    try:
+        # Safely calculate totals, ensuring all values are available and properly formatted
+        total_admin_fee = sum(float(row.get('admin_fee', '0').strip('$').replace(',', '')) for row in summary_data)
+        total_sum_of_toll_cost = sum(float(row.get('sum_of_toll_cost', '0').strip('$').replace(',', '')) for row in summary_data)
+        total_contract_toll_cost = sum(float(row.get('total_toll_contract_cost', '0').strip('$').replace(',', '')) for row in summary_data)
+    except Exception as e:
+        app.logger.error(f"Error calculating totals: {e}")
+        return render_template('summary.html', error="Error calculating totals.")
 
-    if summary_data:
-        app.logger.info("Summary data fetched successfully: %s", summary_data)
-    else:
-        app.logger.warning("No summary data found.")
-
-    # Render the summary template with the fetched data and totals
     return render_template('summary.html', summary=summary_data, total_admin_fee=total_admin_fee,
                            total_sum_of_toll_cost=total_sum_of_toll_cost,
                            total_contract_toll_cost=total_contract_toll_cost)
