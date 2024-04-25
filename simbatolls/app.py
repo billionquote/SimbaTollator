@@ -537,23 +537,23 @@ def search():
     if search_query:
         session = Session(bind=db.engine)
         try:
-            # Fetch summary record for the contract
+            # Fetch summary record for the contract using ORM approach
             summary_result = session.execute(
                 select(Summary).where(Summary.contract_number == search_query)
             )
             summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
 
-            # Fetch raw records for the contract
+            # Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
                 select(RawData).where(RawData.res == search_query)
             )
             raw_records = [{
-                'Toll Date/Time': row.start_date, 
-                'Details': row.details, 
-                'LPN/Tag number': row.lpn_tag_number, 
-                'Vehicle Class': row.vehicle_class, 
-                'Trip Cost': f"${float(row.trip_cost):,.2f}", 
-                'Rego': row.rego
+                'Toll Date/Time': getattr(row, "Start Date"), 
+                'Details': getattr(row, "details"), 
+                'LPN/Tag number': getattr(row, "LPN/Tag number"), 
+                'Vehicle Class': getattr(row, "Vehicle Class"), 
+                'Trip Cost': f"${getattr(row, 'Trip Cost'):,.2f}", 
+                'Rego': getattr(row, "rego")
             } for row in raw_result.scalars().all()]
 
         finally:
