@@ -236,37 +236,55 @@ def load_dataframes(rcm_df_path, tolls_df_path):
     tolls_df = pd.read_json(tolls_df_path)
     return rcm_df, tolls_df
 
-# Populate summary table
 def populate_summary_table(df):
+    print("Original DataFrame:", df.head())  # Display initial data for debugging
+
     # Ensure 'Res.' column is a string and remove any trailing ".0"
     df['Res.'] = df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
     df['Pickup Date Time'] = pd.to_datetime(df['Pickup Date Time'])
     df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
     df = df[df['Res.'].notnull()]
-    df=df.drop_duplicates()
+    df = df.drop_duplicates()
+
+    # Debug output to see DataFrame before aggregation
+    print("DataFrame before aggregation:", df.head())
+
     # Group by the 'Res.' column and perform aggregations
     summary = df.groupby('Res.').agg(
         Num_of_Rows=('Res.', 'size'),
         Sum_of_Toll_Cost=('Trip Cost', 'sum')
     ).reset_index()
 
+    # Debug output to see how aggregation results look
+    print("Aggregated DataFrame:", summary.head())
+
     # Calculate grand total and admin fee total
     grand_total = summary['Sum_of_Toll_Cost'].sum()
     admin_fee_total = (summary['Num_of_Rows'] * 2.95).sum()
-    summary['admin_fee'] = summary['Num_of_Rows'] * 2.95
+    summary['admin_fee'] = summary['Num_of_Rows'] * 2.95  # This should be a scalar for each group
+
+    # Debug output to check the admin_fee column
+    print("DataFrame after adding admin_fee:", summary.head())
+
     summary['Total Toll Contract cost'] = summary['admin_fee'] + summary['Sum_of_Toll_Cost']
-    
     summary['Pickup Date Time'] = df['Pickup Date Time'].dt.strftime('%Y-%m-%d %H:%M')
     summary['Dropoff Date Time'] = df['Dropoff Date Time'].dt.strftime('%Y-%m-%d %H:%M')
     
-    # Round 'Sum of Toll Cost' and 'Total Toll Contract cost' to 2 decimal points
     summary['Sum_of_Toll_Cost'] = summary['Sum_of_Toll_Cost'].round(2)
     summary['Total Toll Contract cost'] = summary['Total Toll Contract cost'].round(2)
-
-    # Format 'Admin Fee', 'Sum_of_Toll_Cost', and 'Total Toll Contract cost' as currency
     summary['Admin Fee'] = '$' + summary['admin_fee'].astype(float).round(2).map('{:,.2f}'.format)
     summary['Sum of Toll Cost'] = '$' + summary['Sum_of_Toll_Cost'].astype(float).map('{:,.2f}'.format)
     summary['Total Toll Contract cost'] = '$' + summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
+
+    summary = summary.rename(columns={
+        'Res.': 'Contract Number'
+    })
+    
+    summary['Contract Number'] = summary['Contract Number'].astype(int)
+    summary = summary.sort_values(by='Contract Number', ascending=False)
+
+    # Final DataFrame to be returned
+    print("Final DataFrame for SQL operations:", summary.head())
     summary=summary.rename(columns={
         'Res.': 'Contract Number'
     })
@@ -283,7 +301,6 @@ def populate_summary_table(df):
         'Dropoff Date Time': 'dropoff_date_time',
         'Admin Fee': 'admin_fee'
     })
-    
     return summary, grand_total, admin_fee_total
 
 
