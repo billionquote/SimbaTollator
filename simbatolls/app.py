@@ -388,8 +388,8 @@ def update_or_insert_summary(summary):
         engine = db.engine
         print(engine)
         with engine.connect() as conn:
-            print(transaction)
             transaction = conn.begin()
+            print(transaction)
             for index, row in summary.iterrows():
                 # Convert each field and ensure scalar values
                 params = {
