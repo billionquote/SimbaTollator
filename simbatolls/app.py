@@ -391,7 +391,9 @@ def update_or_insert_summary(summary):
             transaction = conn.begin()
             try:
                 for index, row in summary.iterrows():
-                    admin_fee = float(row['admin_fee'].replace('$', '').replace(',', '').strip())
+                    print(f'row: {row}')
+                    print(f'row: {row['admin_fee']}')
+                    admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
                     pickup_date_time = row['pickup_date_time'].to_pydatetime() if isinstance(row['pickup_date_time'], pd.Timestamp) else row['pickup_date_time']
                     dropoff_date_time = row['dropoff_date_time'].to_pydatetime() if isinstance(row['dropoff_date_time'], pd.Timestamp) else row['dropoff_date_time']
                     
@@ -434,7 +436,7 @@ def update_or_insert_summary(summary):
                 raise
     except Exception as e:
         print("Failed to update or insert summary:", e)
-        traceback.print_exc()  # This will print stack trace to debug the error
+        #traceback2.print_exc()  # This will print stack trace to debug the error
         raise
 
 def fetch_summary_data():
