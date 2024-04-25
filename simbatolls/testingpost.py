@@ -238,47 +238,57 @@ def load_dataframes(rcm_df_path, tolls_df_path):
 
 # Populate summary table
 def populate_summary_table(df):
+    print("Original DataFrame:", df.head())  # Display initial data for debugging
+
     # Ensure 'Res.' column is a string and remove any trailing ".0"
     df['Res.'] = df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
     df['Pickup Date Time'] = pd.to_datetime(df['Pickup Date Time'])
     df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
     df = df[df['Res.'].notnull()]
-    df=df.drop_duplicates()
+    df = df.drop_duplicates()
+
+    # Debug output to see DataFrame before aggregation
+    print("DataFrame before aggregation:", df.head())
+
     # Group by the 'Res.' column and perform aggregations
     summary = df.groupby('Res.').agg(
         Num_of_Rows=('Res.', 'size'),
         Sum_of_Toll_Cost=('Trip Cost', 'sum')
     ).reset_index()
 
+    # Debug output to see how aggregation results look
+    print("Aggregated DataFrame:", summary.head())
+
     # Calculate grand total and admin fee total
     grand_total = summary['Sum_of_Toll_Cost'].sum()
     admin_fee_total = (summary['Num_of_Rows'] * 2.95).sum()
-    summary['admin_fee'] = summary['Num_of_Rows'] * 2.95
+    summary['admin_fee'] = summary['Num_of_Rows'] * 2.95  # This should be a scalar for each group
+
+    # Debug output to check the admin_fee column
+    print("DataFrame after adding admin_fee:", summary.head())
+
     summary['Total Toll Contract cost'] = summary['admin_fee'] + summary['Sum_of_Toll_Cost']
-    
     summary['Pickup Date Time'] = df['Pickup Date Time'].dt.strftime('%Y-%m-%d %H:%M')
     summary['Dropoff Date Time'] = df['Dropoff Date Time'].dt.strftime('%Y-%m-%d %H:%M')
     
-    # Round 'Sum of Toll Cost' and 'Total Toll Contract cost' to 2 decimal points
     summary['Sum_of_Toll_Cost'] = summary['Sum_of_Toll_Cost'].round(2)
     summary['Total Toll Contract cost'] = summary['Total Toll Contract cost'].round(2)
-
-    # Format 'Admin Fee', 'Sum_of_Toll_Cost', and 'Total Toll Contract cost' as currency
     summary['Admin Fee'] = '$' + summary['admin_fee'].astype(float).round(2).map('{:,.2f}'.format)
     summary['Sum of Toll Cost'] = '$' + summary['Sum_of_Toll_Cost'].astype(float).map('{:,.2f}'.format)
     summary['Total Toll Contract cost'] = '$' + summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
 
-    # Drop the 'admin_fee' column as it's now redundant
-    #summary.drop(columns=['admin_fee'], inplace=True)
-
-    # Rename the columns for clarity
-    summary.rename(columns={'Res.': 'Contract Number', 'Num_of_Rows': 'Num of Rows'}, inplace=True)
-        # Order by 'Contract Number'
-    # Ensure that 'Contract Number' is treated as an integer for proper sorting
+    summary = summary.rename(columns={
+        'Res.': 'Contract Number'
+    })
+    
     summary['Contract Number'] = summary['Contract Number'].astype(int)
     summary = summary.sort_values(by='Contract Number', ascending=False)
-    
+
+    # Final DataFrame to be returned
+    print("Final DataFrame for SQL operations:", summary.head())
+
     return summary, grand_total, admin_fee_total
+
 
 
 def create_rawdata_table(result_df):
@@ -366,41 +376,38 @@ def update_or_insert_summary(summary):
         with engine.connect() as conn:
             transaction = conn.begin()
             for index, row in summary.iterrows():
-                # Prepare parameters ensuring keys match SQL placeholders
+                # Extract each field as a scalar explicitly
                 params = {
-                    'contract_number': row['Contract Number'],
-                    'num_of_rows': row['Num of Rows'],
-                    'sum_of_toll_cost': row['Sum_of_Toll_Cost'],
-                    'total_toll_cost': row['Total Toll Contract cost'].replace('$', '').replace(',', ''),  # Strip currency format
-                    'pickup_time': row['Pickup Date Time'],
-                    'dropoff_time': row['Dropoff Date Time'],
-                    'admin_fee': row['admin_fee']
+                    'contract_number': int(row['contract_number']),
+                    'num_of_rows': int(row['num_of_rows']),
+                    'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
+                    'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
+                    'pickup_date_time': row['pickup_date_time'],
+                    'dropoff_date_time': row['dropoff_date_time'],
+                    'admin_fee': float(row['admin_fee'].replace('$', '').replace(',', ''))
                 }
-                
-                # Check if record exists
+
                 existing = conn.execute(
                     text("SELECT 1 FROM summary WHERE contract_number = :contract_number"),
                     {'contract_number': params['contract_number']}
                 ).scalar()
-                
+
                 if existing:
-                    # Update existing record
                     conn.execute(text("""
                         UPDATE summary SET
                         num_of_rows = :num_of_rows,
                         sum_of_toll_cost = :sum_of_toll_cost,
-                        total_toll_contract_cost = :total_toll_cost,
-                        pickup_date_time = :pickup_time,
-                        dropoff_date_time = :dropoff_time,
+                        total_toll_contract_cost = :total_toll_contract_cost,
+                        pickup_date_time = :pickup_date_time,
+                        dropoff_date_time = :dropoff_date_time,
                         admin_fee = :admin_fee
                         WHERE contract_number = :contract_number
                     """), params)
                 else:
-                    # Insert new record
                     conn.execute(text("""
                         INSERT INTO summary (contract_number, num_of_rows, sum_of_toll_cost, 
                                              total_toll_contract_cost, pickup_date_time, dropoff_date_time, admin_fee)
-                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_cost, :pickup_time, :dropoff_time, :admin_fee)
+                        VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_contract_cost, :pickup_date_time, :dropoff_date_time, :admin_fee)
                     """), params)
             transaction.commit()
     except Exception as e:
@@ -409,32 +416,29 @@ def update_or_insert_summary(summary):
         raise
 
 
-
 def fetch_summary_data():
     try:
-        # Use SQLAlchemy's session to execute SQL
-        engine = db.engine  # Corrected to use the global db instance
+        engine = db.engine
         with engine.connect() as connection:
-            result = connection.execute("SELECT * FROM summary ORDER BY \"contract_number\" DESC")
+            result = connection.execute(text("SELECT * FROM summary ORDER BY contract_number DESC"))
             summary_data = [dict(row) for row in result.fetchall()]
+            app.logger.debug(f"Fetched summary data: {summary_data}")  # Log fetched data
         return summary_data
     except Exception as e:
         app.logger.error(f"Error fetching summary data: {e}")
         return None
 
-
-
-
 @app.route('/summary')
 @login_required
 def summary():
-    # Fetch summary data from the database
     summary_data = fetch_summary_data()
-
+    if summary_data is None or not summary_data:
+        app.logger.warning("No summary data found or error occurred.")
+        return render_template('summary.html', error="No data available.")
     # Calculate totals
-    total_admin_fee = sum(float(row['Admin Fee'].strip('$').replace(',', '')) if row['Admin Fee'] else 0 for row in summary_data)
-    total_sum_of_toll_cost = sum(float(row['Sum of Toll Cost'].strip('$').replace(',', '')) if row['Sum of Toll Cost'] else 0 for row in summary_data)
-    total_contract_toll_cost = sum(float(row['Total Toll Contract cost'].strip('$').replace(',', '')) if row['Total Toll Contract cost'] else 0 for row in summary_data)
+    total_admin_fee = sum(float(row['admin_fee'].strip('$').replace(',', '')) if row['admin_fee'] else 0 for row in summary_data)
+    total_sum_of_toll_cost = sum(float(row['sum_of_toll_cost'].strip('$').replace(',', '')) if row['sum_of_toll_cost'] else 0 for row in summary_data)
+    total_contract_toll_cost = sum(float(row['total_toll_contract_cost'].strip('$').replace(',', '')) if row['total_toll_contract_cost'] else 0 for row in summary_data)
 
     if summary_data:
         app.logger.info("Summary data fetched successfully: %s", summary_data)
@@ -467,13 +471,13 @@ def get_last_5_contracts():
     engine = app.db.engine  # Ensure you have this setup to access the db engine
     with engine.connect() as connection:
         query = """
-            SELECT DISTINCT "Contract Number" 
+            SELECT DISTINCT "contract_number" 
             FROM summary 
-            ORDER BY "Contract Number" DESC 
+            ORDER BY "contract_number" DESC 
             LIMIT 5
         """
         result = connection.execute(query)
-        last_5_contracts = [row['Contract Number'] for row in result.fetchall()]
+        last_5_contracts = [row['contract_number'] for row in result.fetchall()]
     return last_5_contracts
 
 
@@ -493,7 +497,7 @@ def search():
         with engine.connect() as connection:
             # Fetch summary record for the contract
             summary_result = connection.execute(
-                text("SELECT * FROM summary WHERE \"Contract Number\" = :cn"),
+                text("SELECT * FROM summary WHERE \"contract_number\" = :cn"),
                 {'cn': search_query}
             )
             summary_record = [{column: value for column, value in row.items()} for row in summary_result]
