@@ -458,6 +458,7 @@ def summary():
     if summary_data is None or not summary_data:
         app.logger.warning("No summary data found or error occurred.")
         return render_template('summary.html', error="No data available.")
+    print(f'summary DATA BELOW: {summary_data[1]}')
     # Calculate totals
     total_admin_fee = sum(float(row['admin_fee'].strip('$').replace(',', '')) if row['admin_fee'] else 0 for row in summary_data)
     total_sum_of_toll_cost = sum(float(row['sum_of_toll_cost'].strip('$').replace(',', '')) if row['sum_of_toll_cost'] else 0 for row in summary_data)
@@ -491,7 +492,7 @@ def compact_number_format(value):
 app.jinja_env.filters['compact_number'] = compact_number_format
 
 def get_last_5_contracts():
-    engine = app.db.engine  # Ensure you have this setup to access the db engine
+    engine = db.engine  # Ensure you have this setup to access the db engine
     with engine.connect() as connection:
         query = """
             SELECT DISTINCT "contract_number" 
