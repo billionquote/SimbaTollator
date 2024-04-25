@@ -466,12 +466,21 @@ def summary():
     if not summary_data:
         app.logger.warning("No summary data found or error occurred.")
         return render_template('summary.html', error="No data available.")
-    
+
     try:
         # Safely calculate totals, ensuring all values are available and properly formatted
-        total_admin_fee = sum(float(row.get('admin_fee', '0').strip('$').replace(',', '')) for row in summary_data)
-        total_sum_of_toll_cost = sum(float(row.get('sum_of_toll_cost', '0').strip('$').replace(',', '')) for row in summary_data)
-        total_contract_toll_cost = sum(float(row.get('total_toll_contract_cost', '0').strip('$').replace(',', '')) for row in summary_data)
+        total_admin_fee = sum(
+            float(row.get('admin_fee', 0) if isinstance(row.get('admin_fee'), float) else float(row.get('admin_fee', '0').strip('$').replace(',', '')))
+            for row in summary_data
+        )
+        total_sum_of_toll_cost = sum(
+            float(row.get('sum_of_toll_cost', 0) if isinstance(row.get('sum_of_toll_cost'), float) else float(row.get('sum_of_toll_cost', '0').strip('$').replace(',', '')))
+            for row in summary_data
+        )
+        total_contract_toll_cost = sum(
+            float(row.get('total_toll_contract_cost', 0) if isinstance(row.get('total_toll_contract_cost'), float) else float(row.get('total_toll_contract_cost', '0').strip('$').replace(',', '')))
+            for row in summary_data
+        )
     except Exception as e:
         app.logger.error(f"Error calculating totals: {e}")
         return render_template('summary.html', error="Error calculating totals.")
@@ -479,6 +488,7 @@ def summary():
     return render_template('summary.html', summary=summary_data, total_admin_fee=total_admin_fee,
                            total_sum_of_toll_cost=total_sum_of_toll_cost,
                            total_contract_toll_cost=total_contract_toll_cost)
+
 
 
 # Define a custom filter
