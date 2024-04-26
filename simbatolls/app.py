@@ -21,6 +21,8 @@ from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from flask_login import login_required
+from datetime import timedelta
+
 #from flask import current_app as app
 
 
@@ -29,7 +31,7 @@ app = Flask(__name__, template_folder='templates')
 app.secret_key = 'your_secret_key'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
-
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
 
 @app.route('/')
 def home():
