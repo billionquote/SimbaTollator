@@ -17,93 +17,132 @@ def main():
     try:
         # Start a transaction
         session.begin()
-        t=session.execute(text(""" select * from rawdata limit 1"""))
-        print(t)
+
         # Create a temporary table with distinct records
-        session.execute
         session.execute(text("""
             CREATE TEMPORARY TABLE temp_rawdata AS 
-SELECT 
-    "Start Date",
-    "Details",
-    "LPN/Tag number",
-    "Vehicle Class",
-    "Trip Cost",
-    "Fleet ID",
-    "End Date",
-    "Date",
-    "Rego",
-    "#",
-    "Res.",
-    "Ref.",
-    "Update",
-    "Notes",
-    "Status",
-    "Dropoff",
-    "Day",
-    "Dropoff Date",
-    "Time",
-    "Pickup",
-    "Pickup Date",
-    "Time_c13",
-    "# Days",
-    "Category",
-    "Vehicle",
-    "Colour",
-    "Items",
-    "Insurance",
-    "Departure",
-    "Next Rental",
-    "Pickup Date Time",
-    "Dropoff Date Time"
-FROM rawdata
-GROUP BY 
-    "Start Date",
-    "Details",
-    "LPN/Tag number",
-    "Vehicle Class",
-    "Trip Cost",
-    "Fleet ID",
-    "End Date",
-    "Date",
-    "Rego",
-    "#",
-    "Res.",
-    "Ref.",
-    "Update",
-    "Notes",
-    "Status",
-    "Dropoff",
-    "Day",
-    "Dropoff Date",
-    "Time",
-    "Pickup",
-    "Pickup Date",
-    "Time_c13",
-    "# Days",
-    "Category",
-    "Vehicle",
-    "Colour",
-    "Items",
-    "Insurance",
-    "Departure",
-    "Next Rental",
-    "Pickup Date Time",
-    "Dropoff Date Time"
-HAVING COUNT(*) > 1;
-                            """))
-        
+            SELECT 
+                "Start Date",
+                "Details",
+                "LPN/Tag number",
+                "Vehicle Class",
+                "Trip Cost",
+                "Fleet ID",
+                "End Date",
+                "Date",
+                "Rego",
+                "#",
+                "Res.",
+                "Ref.",
+                "Update",
+                "Notes",
+                "Status",
+                "Dropoff",
+                "Day",
+                "Dropoff Date",
+                "Time",
+                "Pickup",
+                "Pickup Date",
+                "Time_c13",
+                "# Days",
+                "Category",
+                "Vehicle",
+                "Colour",
+                "Items",
+                "Insurance",
+                "Departure",
+                "Next Rental",
+                "Pickup Date Time",
+                "Dropoff Date Time"
+            FROM (
+                SELECT 
+                    *,
+                    ROW_NUMBER() OVER (PARTITION BY 
+                        "Start Date",
+                        "Details",
+                        "LPN/Tag number",
+                        "Vehicle Class",
+                        "Trip Cost",
+                        "Fleet ID",
+                        "End Date",
+                        "Date",
+                        "Rego",
+                        "#",
+                        "Res.",
+                        "Ref.",
+                        "Update",
+                        "Notes",
+                        "Status",
+                        "Dropoff",
+                        "Day",
+                        "Dropoff Date",
+                        "Time",
+                        "Pickup",
+                        "Pickup Date",
+                        "Time_c13",
+                        "# Days",
+                        "Category",
+                        "Vehicle",
+                        "Colour",
+                        "Items",
+                        "Insurance",
+                        "Departure",
+                        "Next Rental",
+                        "Pickup Date Time",
+                        "Dropoff Date Time"
+                    ) AS row_num
+                FROM rawdata
+            ) AS subquery
+            WHERE row_num = 1;
+        """))
+
         # Delete all data from the original table
         session.execute(text("""
             DELETE FROM rawdata;
         """))
-        
+
+        # Copy back unique records to the original table
         # Copy back unique records to the original table
         session.execute(text("""
             INSERT INTO rawdata
-            SELECT * FROM temp_rawdata;
+            SELECT 
+                CAST(row_number() OVER () AS INTEGER) AS id,
+                "Start Date",
+                "Details",
+                "LPN/Tag number",
+                "Vehicle Class",
+                "Trip Cost",
+                "Fleet ID",
+                "End Date",
+                "Date",
+                "Rego",
+                "#",
+                "Res.",
+                "Ref.",
+                "Update",
+                "Notes",
+                "Status",
+                "Dropoff",
+                "Day",
+                "Dropoff Date",
+                "Time",
+                "Pickup",
+                "Pickup Date",
+                "Time_c13",
+                "# Days",
+                "Category",
+                "Vehicle",
+                "Colour",
+                "Items",
+                "Insurance",
+                "Departure",
+                "Next Rental",
+                "Pickup Date Time",
+                "Dropoff Date Time"
+            FROM temp_rawdata;
         """))
-        
+
+
         # Commit changes
         session.commit()
         print("Duplicates removed successfully.")

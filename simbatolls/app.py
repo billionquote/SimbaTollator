@@ -416,7 +416,7 @@ def update_or_insert_summary(summary):
                         'admin_fee': admin_fee
                     }
                     
-                    print("SQL Params:", params)  # Debugging output
+                    #print("SQL Params:", params)  # Debugging output
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
                     
