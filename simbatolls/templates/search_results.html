@@ -230,9 +230,9 @@
                             <td>{{ record['pickup_date_time'] }}</td>
                             <td>{{ record['dropoff_date_time'] }}</td>
                             <td>{{ record['num_of_rows'] }}</td>
-                            <td>${{ record['admin_fee']|format('{:,.2f}') }}</td>
-                            <td>${{ record['sum_of_toll_cost']|format('{:,.2f}') }}</td>
-                            <td>${{ record['total_toll_contract_cost']|format('{:,.2f}') }}</td>
+                            <td>${{ record['admin_fee'] }}</td>
+                            <td>${{ record['sum_of_toll_cost'] }}</td>
+                            <td>${{ record['total_toll_contract_cost']}}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
