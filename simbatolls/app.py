@@ -14,7 +14,6 @@ from sqlalchemy import select, column, create_engine, Table, MetaData
 from io import StringIO
 from simbatolls.cleaner import cleaner
 from celery import Celery
-from celery import shared_task
 from flask_migrate import Migrate
 #login fixes 
 from flask_login import login_user, LoginManager
@@ -52,22 +51,7 @@ db = SQLAlchemy(app)
 app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
 app.config['CELERY_RESULT_BACKEND'] = os.environ['REDIS_URL']
 
-#create a celery to for queueing
-def make_celery(app):
-    celery = Celery(
-        app.import_name,
-        broker=app.config['CELERY_BROKER_URL'],
-        backend=app.config['CELERY_RESULT_BACKEND']
-    )
-    celery.conf.update(app.config)
-    class ContextTask(celery.Task):
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return self.run(*args, **kwargs)
-    celery.Task = ContextTask
-    return celery
 
-celery = make_celery(app)
 
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
 migrate = Migrate(app, db)
@@ -483,7 +467,7 @@ def fetch_summary_data():
     session = Session(bind=db.engine)
     try:
         # Use ORM style query to fetch data
-        result = session.execute(select(Summary).order_by(Summary.contract_number.desc()).limit(2000))
+        result = session.execute(select(Summary).order_by(Summary.contract_number.desc()))
         # Extract models directly from result using scalars().all()
         summary_data = result.scalars().all()
         # Convert each ORM model to dictionary if needed
