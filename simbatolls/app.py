@@ -235,7 +235,7 @@ def delete_all_duplicate_records():
     df_cleaned = df.drop_duplicates()
 
     # Deleting old data from the table
-    session.execute("TRUNCATE TABLE rawdata")  # Caution: This removes all data from the table
+    session.execute(text("TRUNCATE TABLE rawdata"))  # Caution: This removes all data from the table)
     session.commit()
 
     # Writing back the cleaned data
