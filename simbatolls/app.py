@@ -540,7 +540,7 @@ def search():
 
             # Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
-                select(
+                select([
                     text("\"rawdata\".\"ID\" AS id"),
                     text("\"rawdata\".\"Start Date\" AS start_date"),
                     text("\"rawdata\".\"Details\" AS details"),
@@ -548,8 +548,11 @@ def search():
                     text("\"rawdata\".\"Vehicle Class\" AS vehicle_class"),
                     text("\"rawdata\".\"Trip Cost\" AS trip_cost"),
                     text("\"rawdata\".\"Rego\" AS rego")
-                ).where(text('"rawdata"."Res." = :res_value')).params(res_value=search_query)
+                ]).select_from(text("\"rawdata\""))
+                .where(text('"rawdata"."Res." = :res_value'))
+                .params(res_value=search_query)
             )
+
             raw_records = [{
                 'Start Date': row.start_date,
                 'Details': row.details,
