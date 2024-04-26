@@ -11,6 +11,7 @@ from sqlalchemy.sql import text
 import traceback2
 from sqlalchemy.orm import Session
 from sqlalchemy import select, column, create_engine, Table, MetaData
+from io import StringIO
 #from flask import current_app as app
 
 
@@ -217,36 +218,46 @@ def upload_file():
 
     return jsonify({'rcmPreview': rcm_html, 'tollsPreview': tolls_html})
 
-#remove duplicates: 
+#data base management 
 
-def delete_duplicate_records():
-    # Connect to the database
-    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
-    connection = engine.connect()
+#DATABASE = 'database.db'
 
-    # Define the table from which you want to delete duplicate records
-    table_name = 'rawdata'
-    metadata = MetaData()
-    table = Table(table_name, metadata, autoload=True, autoload_with=engine)
+#def get_db():
+    #db = getattr(g, '_database', None)
+    #if db is None:
+        #db = g._database = sqlite3.connect(DATABASE)
+    #return db
 
-    # Build and execute the SQL query to delete duplicate records
-    delete_query = table.delete().where(
-        table.c.id.notin_(
-            select([func.min(table.c.id)]).group_by(table.c.column1, table.c.column2)  # Replace column1, column2, etc. with your columns
-        )
-    )
-    result = connection.execute(delete_query)
-    
-    # Close the database connection
-    connection.close()
-
-    return result.rowcount
+#@app.teardown_appcontext
+#def close_connection(exception):
+    #db = getattr(g, '_database', None)
+    #if db is not None:
+        #db.close()
 
 # Load DataFrames from session paths
 def load_dataframes(rcm_df_path, tolls_df_path):
-    rcm_df = pd.read_json(rcm_df_path)
-    tolls_df = pd.read_json(tolls_df_path)
-    return rcm_df, tolls_df
+    try:
+        # First, let's check if the file exists and is not empty
+        if os.path.exists(rcm_df_path) and os.path.getsize(rcm_df_path) > 0:
+            with open(rcm_df_path, 'r') as file:
+                rcm_data = file.read()
+                rcm_df = pd.read_json(StringIO(rcm_data))
+        else:
+            print("RCM file is empty or missing.")
+            return None, None
+
+        if os.path.exists(tolls_df_path) and os.path.getsize(tolls_df_path) > 0:
+            with open(tolls_df_path, 'r') as file:
+                tolls_data = file.read()
+                tolls_df = pd.read_json(StringIO(tolls_data))
+        else:
+            print("Tolls file is empty or missing.")
+            return None, None
+
+        return rcm_df, tolls_df
+    except Exception as e:
+        print(f"Failed to load dataframes: {e}")
+        return None, None
 
 def populate_summary_table(df):
     print("Original DataFrame:", df.head())  # Display initial data for debugging
@@ -416,7 +427,7 @@ def update_or_insert_summary(summary):
                         'admin_fee': admin_fee
                     }
                     
-                    #print("SQL Params:", params)  # Debugging output
+                    print("SQL Params:", params)  # Debugging output
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
                     

@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import os
+from io import StringIO
 
 def main():
     # Assume DATABASE_URL is set in your environment variables,
