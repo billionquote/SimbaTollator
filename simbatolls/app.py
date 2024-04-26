@@ -564,6 +564,7 @@ def search():
                     'Rego': row[5]         # Assuming 'Rego' is the sixth column
                 }
                 raw_records.append(record)
+            print(raw_records)
         finally:
             session.close()
 
