@@ -550,7 +550,7 @@ def search():
 
             # Extract the data into a list of dictionaries
             
-            raw_records = [dict(row) for row in raw_result.fetchall()]
+            raw_records = [dict(row) for row in raw_result]
         finally:
             session.close()
 
