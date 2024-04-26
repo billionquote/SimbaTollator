@@ -391,8 +391,8 @@ def update_or_insert_summary(summary):
             transaction = conn.begin()
             try:
                 for index, row in summary.iterrows():
-                    print(f'row: {row}')
-                    print(f'row: {row['admin_fee']}')
+                    #print(f'row: {row}')
+                    #print(f'row: {row['admin_fee']}')
                     admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
                     pickup_date_time = row['pickup_date_time'].to_pydatetime() if isinstance(row['pickup_date_time'], pd.Timestamp) else row['pickup_date_time']
                     dropoff_date_time = row['dropoff_date_time'].to_pydatetime() if isinstance(row['dropoff_date_time'], pd.Timestamp) else row['dropoff_date_time']
@@ -551,8 +551,7 @@ def search():
             # Extract the data into a list of dictionaries
             
             # Convert each RowProxy to a dictionary manually
-            for row in raw_result:
-                print(row)
+
             raw_records = []
             for row in raw_result:
                 record = {
@@ -564,7 +563,7 @@ def search():
                     'Rego': row[5]         # Assuming 'Rego' is the sixth column
                 }
                 raw_records.append(record)
-            print(raw_records)
+            #print(raw_records)
         finally:
             session.close()
 
