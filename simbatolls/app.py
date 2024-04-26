@@ -397,7 +397,7 @@ def confirm_upload():
         try:
             engine = db.engine
             with engine.connect() as conn:
-                delete_all_duplicate_records()
+                #delete_all_duplicate_records()
                 create_rawdata_table(result_df)  # Ensure this function has error handling
                 result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
 
