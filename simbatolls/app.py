@@ -320,9 +320,7 @@ def create_rawdata_table(result_df):
     from sqlalchemy import Table, Column, Integer, String, MetaData, Float
     metadata = MetaData()
 
-    columns = [
-        Column('id', Integer, primary_key=True)
-    ]
+
     # Dynamically add columns based on DataFrame dtypes
     for col_name, dtype in result_df.dtypes.items():  # Changed from iteritems() to items()
         if dtype == 'int64':

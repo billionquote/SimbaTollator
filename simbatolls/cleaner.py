@@ -21,8 +21,77 @@ def main():
         # Create a temporary table with distinct records
         session.execute(text("""
             CREATE TEMPORARY TABLE temp_rawdata AS 
-            SELECT DISTINCT * FROM rawdata;
-        """))
+            SELECT distinct 
+                            "Start Date",
+                            "Details",
+                            "LPN/Tag number",
+                            "Vehicle Class",
+                            "Trip Cost",
+                            "Fleet ID",
+                            "End Date",
+                            "Date",
+                            "Rego",
+                            "#",
+                            "Res.",
+                            "Ref.",
+                            "Update",
+                            "Notes",
+                            "Status",
+                            "Dropoff",
+                            "Day",
+                            "Dropoff Date",
+                            "Time",
+                            "Pickup",
+                            "Pickup Date",
+                            "Time_c13",
+                            "# Days",
+                            "Category",
+                            "Vehicle",
+                            "Colour",
+                            "Items",
+                            "Insurance",
+                            "Departure",
+                            "Next Rental",
+                            "Pickup Date Time",
+                            "Dropoff Date Time",
+                    Count(*)
+            FROM rawdata 
+
+                    "Start Date",
+                    "Details",
+                    "LPN/Tag number",
+                    "Vehicle Class",
+                    "Trip Cost",
+                    "Fleet ID",
+                    "End Date",
+                    "Date",
+                    "Rego",
+                    "#",
+                    "Res.",
+                    "Ref.",
+                    "Update",
+                    "Notes",
+                    "Status",
+                    "Dropoff",
+                    "Day",
+                    "Dropoff Date",
+                    "Time",
+                    "Pickup",
+                    "Pickup Date",
+                    "Time_c13",
+                    "# Days",
+                    "Category",
+                    "Vehicle",
+                    "Colour",
+                    "Items",
+                    "Insurance",
+                    "Departure",
+                    "Next Rental",
+                    "Pickup Date Time",
+                    "Dropoff Date Time"
+
+                    Having count(*)>1;
+                            """))
         
         # Delete all data from the original table
         session.execute(text("""
