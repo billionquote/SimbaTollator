@@ -13,6 +13,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, column, create_engine, Table, MetaData
 from io import StringIO
 from simbatolls.cleaner import cleaner
+from celery import Celery
+from celery import shared_task
+from flask_migrate import Migrate
+#login fixes 
+from flask_login import login_user, LoginManager
+from flask_bcrypt import Bcrypt
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from flask_login import login_required
 #from flask import current_app as app
 
 
@@ -27,18 +36,6 @@ ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 def home():
     return render_template('home.html')
 
-#login fixes 
-from flask_login import login_user, LoginManager
-from flask_bcrypt import Bcrypt
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin
-from flask_login import login_required
-
-#adding postgre
-#from dotenv import load_dotenv
-#load_dotenv() 
-
-#updated 22 April
 import os
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
 database_url =os.getenv('DATABASE_URL')
@@ -52,7 +49,25 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-from flask_migrate import Migrate
+app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
+app.config['CELERY_RESULT_BACKEND'] = os.environ['REDIS_URL']
+
+#create a celery to for queueing
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        broker=app.config['CELERY_BROKER_URL'],
+        backend=app.config['CELERY_RESULT_BACKEND']
+    )
+    celery.conf.update(app.config)
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+    celery.Task = ContextTask
+    return celery
+
+celery = make_celery(app)
 
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
 migrate = Migrate(app, db)
@@ -359,6 +374,7 @@ def create_rawdata_table(result_df):
 
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
+@shared_task
 def confirm_upload():
     with app.app_context():
         rcm_df_path = session.get('rcm_df_path')
@@ -431,7 +447,7 @@ def update_or_insert_summary(summary):
                         'admin_fee': admin_fee
                     }
                     
-                    print("SQL Params:", params)  # Debugging output
+                    #print("SQL Params:", params)  # Debugging output
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
                     

@@ -33,6 +33,7 @@ traceback2 = "^1.4.0"
 redis = "^5.0.4"
 rq = "^1.16.1"
 python-io = "^0.3"
+celery = "^5.4.0"
 
 
 [tool.poetry.group.dev.dependencies]

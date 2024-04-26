@@ -10,7 +10,9 @@ import tempfile
 from sqlalchemy.sql import text
 import traceback2
 from sqlalchemy.orm import Session
-from sqlalchemy import select, column
+from sqlalchemy import select, column, create_engine, Table, MetaData
+from io import StringIO
+from simbatolls.cleaner import cleaner
 #from flask import current_app as app
 
 
@@ -60,6 +62,9 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'validate'
+
+#run vaccum cleaner to clean the database 
+cleaner()
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -235,9 +240,28 @@ def upload_file():
 
 # Load DataFrames from session paths
 def load_dataframes(rcm_df_path, tolls_df_path):
-    rcm_df = pd.read_json(rcm_df_path)
-    tolls_df = pd.read_json(tolls_df_path)
-    return rcm_df, tolls_df
+    try:
+        # First, let's check if the file exists and is not empty
+        if os.path.exists(rcm_df_path) and os.path.getsize(rcm_df_path) > 0:
+            with open(rcm_df_path, 'r') as file:
+                rcm_data = file.read()
+                rcm_df = pd.read_json(StringIO(rcm_data))
+        else:
+            print("RCM file is empty or missing.")
+            return None, None
+
+        if os.path.exists(tolls_df_path) and os.path.getsize(tolls_df_path) > 0:
+            with open(tolls_df_path, 'r') as file:
+                tolls_data = file.read()
+                tolls_df = pd.read_json(StringIO(tolls_data))
+        else:
+            print("Tolls file is empty or missing.")
+            return None, None
+
+        return rcm_df, tolls_df
+    except Exception as e:
+        print(f"Failed to load dataframes: {e}")
+        return None, None
 
 def populate_summary_table(df):
     print("Original DataFrame:", df.head())  # Display initial data for debugging
@@ -331,8 +355,6 @@ def create_rawdata_table(result_df):
     engine = db.engine
     rawdata_table.create(engine, checkfirst=True)
 
-
-
 # Usage in your application would not change other than ensuring the DataFrame is passed
 
 @app.route('/confirm-upload', methods=['POST'])
@@ -393,8 +415,8 @@ def update_or_insert_summary(summary):
             transaction = conn.begin()
             try:
                 for index, row in summary.iterrows():
-                    print(f'row: {row}')
-                    print(f'row: {row['admin_fee']}')
+                    #print(f'row: {row}')
+                    #print(f'row: {row['admin_fee']}')
                     admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
                     pickup_date_time = row['pickup_date_time'].to_pydatetime() if isinstance(row['pickup_date_time'], pd.Timestamp) else row['pickup_date_time']
                     dropoff_date_time = row['dropoff_date_time'].to_pydatetime() if isinstance(row['dropoff_date_time'], pd.Timestamp) else row['dropoff_date_time']
@@ -409,7 +431,7 @@ def update_or_insert_summary(summary):
                         'admin_fee': admin_fee
                     }
                     
-                    print("SQL Params:", params)  # Debugging output
+                    #print("SQL Params:", params)  # Debugging output
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
                     
@@ -489,8 +511,6 @@ def summary():
                            total_sum_of_toll_cost=total_sum_of_toll_cost,
                            total_contract_toll_cost=total_contract_toll_cost)
 
-
-
 # Define a custom filter
 @app.template_filter('compact_number')
 def compact_number_format(value):
@@ -527,7 +547,6 @@ def get_last_5_contracts():
     finally:
         session.close()
 
-
 @app.route('/search', methods=['POST', 'GET'])
 @login_required
 def search():
@@ -543,28 +562,32 @@ def search():
             )
             summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
 
-            # Fetch raw records for the contract using ORM approach
-# Fetch raw records for the contract using ORM approach
-            raw_result = session.execute(
-                select(
-                    RawData.id,
-                    column("Start Date").label("start_date"),
-                    column("Details").label("details"),
-                    column("LPN/Tag number").label("lpn_tag_number"),
-                    column("Vehicle Class").label("vehicle_class"),
-                    column("Trip Cost").label("trip_cost"),
-                    column("Rego").label("rego")
-                ).where(text('"Res." = :res_value')).params(res_value=search_query)
-            )
-            raw_records = [{
-                'Start Date': row.start_date,
-                'Details': row.details,
-                'LPN/Tag number': row.lpn_tag_number,
-                'Vehicle Class': row.vehicle_class,
-                'Trip Cost': f"${float(row.trip_cost):,.2f}",
-                'Rego': row.rego
-            } for row in raw_result.scalars().all()]
+            # Fetch raw records for the contract using literal text for proper SQL execution
+            raw_query = text("""
+                SELECT distinct "Start Date" AS start_date, "Details" AS details,
+                       "LPN/Tag number" AS lpn_tag_number, "Vehicle Class" AS vehicle_class,
+                       "Trip Cost" AS trip_cost, "Rego" AS rego
+                FROM rawdata
+                WHERE "Res." = :res_value
+            """)
+            raw_result = session.execute(raw_query, {'res_value': search_query}).fetchall()
 
+            # Extract the data into a list of dictionaries
+            
+            # Convert each RowProxy to a dictionary manually
+
+            raw_records = []
+            for row in raw_result:
+                record = {
+                    'Start Date': row[0],  # Assuming 'Start Date' is the first column
+                    'Details': row[1],     # Assuming 'Details' is the second column
+                    'LPN/Tag number': row[2],  # and so forth
+                    'Vehicle Class': row[3],
+                    'Trip Cost': f"${float(row[4]):,.2f}",  # Assuming 'Trip Cost' is the fifth column
+                    'Rego': row[5]         # Assuming 'Rego' is the sixth column
+                }
+                raw_records.append(record)
+            #print(raw_records)
         finally:
             session.close()
 
@@ -574,6 +597,7 @@ def search():
     else:
         # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
+
 
 if __name__ == '__main__':
     db.create_all()
