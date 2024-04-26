@@ -49,7 +49,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
-app.config['CELERY_RESULT_BACKEND'] = os.environ['REDIS_URL']
+app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 
 
 
@@ -237,22 +237,30 @@ def upload_file():
     #if db is not None:
         #db.close()
 
-# Load DataFrames from session paths
 def load_dataframes(rcm_df_path, tolls_df_path):
     try:
-        # First, let's check if the file exists and is not empty
+        # Check if RCM file exists and is not empty
         if os.path.exists(rcm_df_path) and os.path.getsize(rcm_df_path) > 0:
             with open(rcm_df_path, 'r') as file:
                 rcm_data = file.read()
-                rcm_df = pd.read_json(StringIO(rcm_data))
+                if rcm_data:
+                    rcm_df = pd.read_json(StringIO(rcm_data))
+                else:
+                    print("RCM file has no data.")
+                    return None, None
         else:
             print("RCM file is empty or missing.")
             return None, None
 
+        # Check if Tolls file exists and is not empty
         if os.path.exists(tolls_df_path) and os.path.getsize(tolls_df_path) > 0:
             with open(tolls_df_path, 'r') as file:
                 tolls_data = file.read()
-                tolls_df = pd.read_json(StringIO(tolls_data))
+                if tolls_data:
+                    tolls_df = pd.read_json(StringIO(tolls_data))
+                else:
+                    print("Tolls file has no data.")
+                    return None, None
         else:
             print("Tolls file is empty or missing.")
             return None, None
@@ -261,6 +269,7 @@ def load_dataframes(rcm_df_path, tolls_df_path):
     except Exception as e:
         print(f"Failed to load dataframes: {e}")
         return None, None
+
 
 def populate_summary_table(df):
     print("Original DataFrame:", df.head())  # Display initial data for debugging
