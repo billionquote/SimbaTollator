@@ -545,13 +545,13 @@ def search():
             # Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
                 select(
-                    text("`id` AS id"),
-                    text("`Start Date` AS start_date"),
-                    text("`Details` AS details"),
-                    text("`LPN/Tag number` AS lpn_tag_number"),
-                    text("`Vehicle Class` AS vehicle_class"),
-                    text("`Trip Cost` AS trip_cost"),
-                    text("`Rego` AS rego")
+                    text("\"id\" AS id"),
+                    text("\"Start Date\" AS start_date"),
+                    text("\"Details\" AS details"),
+                    text("\"LPN/Tag number\" AS lpn_tag_number"),
+                    text("\"Vehicle Class\" AS vehicle_class"),
+                    text("\"Trip Cost\" AS trip_cost"),
+                    text("\"Rego\" AS rego")
                 ).where(text('"Res." = :res_value')).params(res_value=search_query)
             )
             raw_records = [{
@@ -572,6 +572,7 @@ def search():
     else:
         # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
+
 
 
 if __name__ == '__main__':
