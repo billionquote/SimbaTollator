@@ -538,21 +538,18 @@ def search():
             )
             summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
 
-            # Fetch raw records for the contract using ORM approach
-            raw_result = session.execute(
-                select([
-                    text("\"rawdata\".\"ID\" AS id"),
-                    text("\"rawdata\".\"Start Date\" AS start_date"),
-                    text("\"rawdata\".\"Details\" AS details"),
-                    text("\"rawdata\".\"LPN/Tag number\" AS lpn_tag_number"),
-                    text("\"rawdata\".\"Vehicle Class\" AS vehicle_class"),
-                    text("\"rawdata\".\"Trip Cost\" AS trip_cost"),
-                    text("\"rawdata\".\"Rego\" AS rego")
-                ]).select_from(text("\"rawdata\""))
-                .where(text('"rawdata"."Res." = :res_value'))
-                .params(res_value=search_query)
-            ).all()
+            # Fetch raw records for the contract using literal text for proper SQL execution
+            raw_query = select([
+                text("\"rawdata\".\"ID\" AS id"),
+                text("\"rawdata\".\"Start Date\" AS start_date"),
+                text("\"rawdata\".\"Details\" AS details"),
+                text("\"rawdata\".\"LPN/Tag number\" AS lpn_tag_number"),
+                text("\"rawdata\".\"Vehicle Class\" AS vehicle_class"),
+                text("\"rawdata\".\"Trip Cost\" AS trip_cost"),
+                text("\"rawdata\".\"Rego\" AS rego")
+            ]).select_from(text("\"rawdata\"")).where(text('"rawdata"."Res." = :res_value'))
 
+            raw_result = session.execute(raw_query, {'res_value': search_query}).fetchall()
             raw_records = [{
                 'Start Date': row.start_date,
                 'Details': row.details,
@@ -560,7 +557,7 @@ def search():
                 'Vehicle Class': row.vehicle_class,
                 'Trip Cost': f"${float(row.trip_cost):,.2f}",
                 'Rego': row.rego
-            } for row in raw_result.scalars().all()]
+            } for row in raw_result]
 
         finally:
             session.close()
