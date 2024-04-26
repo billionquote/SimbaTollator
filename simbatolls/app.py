@@ -11,6 +11,7 @@ from sqlalchemy.sql import text
 import traceback2
 from sqlalchemy.orm import Session
 from sqlalchemy import select, column, create_engine, Table, MetaData, func
+from sqlalchemy.orm import sessionmaker
 #from flask import current_app as app
 
 
@@ -222,25 +223,30 @@ def upload_file():
 def delete_all_duplicate_records():
     # Connect to the database
     engine = db.engine
-    connection = engine.connect()
+    Session = sessionmaker(bind=db.engine)
+    session = Session()
 
-    # Define the table from which you want to delete duplicate records
-    table_name = 'rawdata'
-    metadata = MetaData()
-    table = Table(table_name, metadata, autoload=True, autoload_with=engine)
+    # Reading data into a DataFrame
+    query = session.execute("SELECT * FROM rawdata")
+    df = pd.DataFrame(query.fetchall())
+    df.columns = query.keys()
 
-    # Build and execute the SQL query to delete all duplicate records
-    delete_query = table.delete().where(
-        table.c.id.notin_(
-            select([func.min(table.c.id)]).group_by()
-        )
-    )
-    result = connection.execute(delete_query)
-    
-    # Close the database connection
-    connection.close()
+    # Dropping duplicates
+    df_cleaned = df.drop_duplicates()
 
-    return result.rowcount
+    # Deleting old data from the table
+    session.execute("TRUNCATE TABLE rawdata")  # Caution: This removes all data from the table
+    session.commit()
+
+    # Writing back the cleaned data
+    df_cleaned.to_sql('rawdata', con=engine, index=False, if_exists='append')
+
+    # Closing the session
+    session.close()
+
+    return "Duplicates removed successfully"
+
+
 
 # Load DataFrames from session paths
 def load_dataframes(rcm_df_path, tolls_df_path):
