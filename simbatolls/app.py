@@ -549,7 +549,8 @@ def search():
             raw_result = session.execute(raw_query, {'res_value': search_query}).fetchall()
 
             # Extract the data into a list of dictionaries
-            raw_records = [{column: value for column, value in row.items()} for row in raw_result]
+            
+            raw_records = [dict(row) for row in raw_result.fetchall()]
         finally:
             session.close()
 
