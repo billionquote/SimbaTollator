@@ -11,7 +11,6 @@ from sqlalchemy.sql import text
 import traceback2
 from sqlalchemy.orm import Session
 from sqlalchemy import select, column, create_engine, Table, MetaData, func
-from sqlalchemy.orm import sessionmaker
 #from flask import current_app as app
 
 
@@ -223,30 +222,25 @@ def upload_file():
 def delete_all_duplicate_records():
     # Connect to the database
     engine = db.engine
-    Session = sessionmaker(bind=db.engine)
-    session = Session()
+    connection = engine.connect()
 
-    # Reading data into a DataFrame
-    query = session.execute(text("SELECT * FROM rawdata"))
-    df = pd.DataFrame(query.fetchall())
-    df.columns = query.keys()
+    # Define the table from which you want to delete duplicate records
+    table_name = 'rawdata'
+    metadata = MetaData()
+    table = Table(table_name, metadata, autoload=True, autoload_with=engine)
 
-    # Dropping duplicates
-    df_cleaned = df.drop_duplicates()
+    # Build and execute the SQL query to delete all duplicate records
+    delete_query = table.delete().where(
+        table.c.id.notin_(
+            select([func.min(table.c.id)]).group_by()
+        )
+    )
+    result = connection.execute(delete_query)
+    
+    # Close the database connection
+    connection.close()
 
-    # Deleting old data from the table
-    session.execute("TRUNCATE TABLE rawdata")  # Caution: This removes all data from the table
-    session.commit()
-
-    # Writing back the cleaned data
-    df_cleaned.to_sql('rawdata', con=engine, index=False, if_exists='append')
-
-    # Closing the session
-    session.close()
-
-    return "Duplicates removed successfully"
-
-
+    return result.rowcount
 
 # Load DataFrames from session paths
 def load_dataframes(rcm_df_path, tolls_df_path):
@@ -255,7 +249,7 @@ def load_dataframes(rcm_df_path, tolls_df_path):
     return rcm_df, tolls_df
 
 def populate_summary_table(df):
-    #print("Original DataFrame:", df.head())  # Display initial data for debugging
+    print("Original DataFrame:", df.head())  # Display initial data for debugging
 
     # Ensure 'Res.' column is a string and remove any trailing ".0"
     df['Res.'] = df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
@@ -302,7 +296,7 @@ def populate_summary_table(df):
     summary = summary.sort_values(by='Contract Number', ascending=False)
 
     # Final DataFrame to be returned
-    #print("Final DataFrame for SQL operations:", summary.head())
+    print("Final DataFrame for SQL operations:", summary.head())
     summary=summary.rename(columns={
         'Res.': 'Contract Number'
     })
@@ -385,13 +379,12 @@ def confirm_upload():
         try:
             engine = db.engine
             with engine.connect() as conn:
-                
                 create_rawdata_table(result_df)  # Ensure this function has error handling
                 result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
 
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
-               
+                deleted_count = delete_duplicate_records()
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")  # Debug print
             return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
@@ -424,7 +417,7 @@ def update_or_insert_summary(summary):
                         'admin_fee': admin_fee
                     }
                     
-                    #print("SQL Params:", params)  # Debugging output
+                    print("SQL Params:", params)  # Debugging output
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
                     
