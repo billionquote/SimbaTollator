@@ -539,26 +539,17 @@ def search():
             summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
 
             # Fetch raw records for the contract using literal text for proper SQL execution
-            raw_query = select([
-                text("\"rawdata\".\"ID\" AS id"),
-                text("\"rawdata\".\"Start Date\" AS start_date"),
-                text("\"rawdata\".\"Details\" AS details"),
-                text("\"rawdata\".\"LPN/Tag number\" AS lpn_tag_number"),
-                text("\"rawdata\".\"Vehicle Class\" AS vehicle_class"),
-                text("\"rawdata\".\"Trip Cost\" AS trip_cost"),
-                text("\"rawdata\".\"Rego\" AS rego")
-            ]).select_from(text("\"rawdata\"")).where(text('"rawdata"."Res." = :res_value'))
-
+            raw_query = text("""
+                SELECT "ID" AS id, "Start Date" AS start_date, "Details" AS details,
+                       "LPN/Tag number" AS lpn_tag_number, "Vehicle Class" AS vehicle_class,
+                       "Trip Cost" AS trip_cost, "Rego" AS rego
+                FROM rawdata
+                WHERE "Res." = :res_value
+            """)
             raw_result = session.execute(raw_query, {'res_value': search_query}).fetchall()
-            raw_records = [{
-                'Start Date': row.start_date,
-                'Details': row.details,
-                'LPN/Tag number': row.lpn_tag_number,
-                'Vehicle Class': row.vehicle_class,
-                'Trip Cost': f"${float(row.trip_cost):,.2f}",
-                'Rego': row.rego
-            } for row in raw_result]
 
+            # Extract the data into a list of dictionaries
+            raw_records = [{column: value for column, value in row.items()} for row in raw_result]
         finally:
             session.close()
 
