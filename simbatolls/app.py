@@ -484,7 +484,7 @@ def fetch_summary_data():
     session = Session(bind=db.engine)
     try:
         # Use ORM style query to fetch data
-        result = session.execute(select(Summary).order_by(Summary.contract_number.desc()))
+        result = session.execute(select(Summary).order_by(Summary.contract_number.desc()).limit(2000))
         # Extract models directly from result using scalars().all()
         summary_data = result.scalars().all()
         # Convert each ORM model to dictionary if needed
