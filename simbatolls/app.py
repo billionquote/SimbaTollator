@@ -219,9 +219,9 @@ def upload_file():
 
 #remove duplicates: 
 
-def delete_duplicate_records():
+def delete_all_duplicate_records():
     # Connect to the database
-    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+    engine = db.engine
     connection = engine.connect()
 
     # Define the table from which you want to delete duplicate records
@@ -229,10 +229,10 @@ def delete_duplicate_records():
     metadata = MetaData()
     table = Table(table_name, metadata, autoload=True, autoload_with=engine)
 
-    # Build and execute the SQL query to delete duplicate records
+    # Build and execute the SQL query to delete all duplicate records
     delete_query = table.delete().where(
         table.c.id.notin_(
-            select([func.min(table.c.id)]).group_by(table.c.column1, table.c.column2)  # Replace column1, column2, etc. with your columns
+            select([func.min(table.c.id)]).group_by()
         )
     )
     result = connection.execute(delete_query)
