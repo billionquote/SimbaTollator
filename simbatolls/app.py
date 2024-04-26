@@ -527,7 +527,6 @@ def get_last_5_contracts():
     finally:
         session.close()
 
-
 @app.route('/search', methods=['POST', 'GET'])
 @login_required
 def search():
@@ -544,16 +543,15 @@ def search():
             summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
 
             # Fetch raw records for the contract using ORM approach
-# Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
                 select(
-                    RawData.id,
-                    column("Start Date").label("start_date"),
-                    column("Details").label("details"),
-                    column("LPN/Tag number").label("lpn_tag_number"),
-                    column("Vehicle Class").label("vehicle_class"),
-                    column("Trip Cost").label("trip_cost"),
-                    column("Rego").label("rego")
+                    text("`id` AS id"),
+                    text("`Start Date` AS start_date"),
+                    text("`Details` AS details"),
+                    text("`LPN/Tag number` AS lpn_tag_number"),
+                    text("`Vehicle Class` AS vehicle_class"),
+                    text("`Trip Cost` AS trip_cost"),
+                    text("`Rego` AS rego")
                 ).where(text('"Res." = :res_value')).params(res_value=search_query)
             )
             raw_records = [{
@@ -574,6 +572,7 @@ def search():
     else:
         # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
+
 
 if __name__ == '__main__':
     db.create_all()
