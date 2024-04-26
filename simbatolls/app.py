@@ -221,43 +221,31 @@ def upload_file():
 #remove duplicates: 
 
 def delete_all_duplicate_records():
+    # Connect to the database
     engine = db.engine
-    with engine.connect() as conn:
-        trans = conn.begin()
-        try:
-            # Create a temporary table with a similar structure but no data
-            conn.execute(text("""
-                CREATE TEMPORARY TABLE temp_rawdata (LIKE rawdata INCLUDING ALL);
-            """))
+    Session = sessionmaker(bind=db.engine)
+    session = Session()
 
-            # Insert data into the temporary table, ignoring duplicates
-            conn.execute(text("""
-                INSERT INTO temp_rawdata
-                SELECT DISTINCT * FROM rawdata;
-            """))
+    # Reading data into a DataFrame
+    query = session.execute(text("SELECT * FROM rawdata"))
+    df = pd.DataFrame(query.fetchall())
+    df.columns = query.keys()
 
-            # Clear the original table
-            conn.execute(text("""
-                DELETE FROM rawdata;
-            """))
+    # Dropping duplicates
+    df_cleaned = df.drop_duplicates()
 
-            # Insert cleaned data back into the original table
-            conn.execute(text("""
-                INSERT INTO rawdata
-                SELECT * FROM temp_rawdata;
-            """))
+    # Deleting old data from the table
+    session.execute("TRUNCATE TABLE rawdata")  # Caution: This removes all data from the table
+    session.commit()
 
-            # Drop the temporary table
-            conn.execute(text("""
-                DROP TABLE temp_rawdata;
-            """))
+    # Writing back the cleaned data
+    df_cleaned.to_sql('rawdata', con=engine, index=False, if_exists='append')
 
-            # Commit the transaction
-            trans.commit()
-            return "Duplicates removed successfully"
-        except Exception as e:
-            trans.rollback()
-            return f"Failed to remove duplicates: {e}"
+    # Closing the session
+    session.close()
+
+    return "Duplicates removed successfully"
+
 
 
 # Load DataFrames from session paths
@@ -397,7 +385,7 @@ def confirm_upload():
         try:
             engine = db.engine
             with engine.connect() as conn:
-                #delete_all_duplicate_records()
+                
                 create_rawdata_table(result_df)  # Ensure this function has error handling
                 result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
 
