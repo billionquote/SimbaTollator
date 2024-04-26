@@ -530,15 +530,14 @@ def search():
     search_query = request.form.get('search_query') if request.method == 'POST' else request.args.get('search_query', None)
 
     if search_query:
-        session = Session(bind=db.engine)
-        try:
+        with Session(db.engine) as session:
             # Fetch summary record for the contract using ORM approach
             summary_result = session.execute(
                 select(Summary).where(Summary.contract_number == search_query)
-            )
-            summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
+            ).scalars().all()
+            summary_record = [row._asdict() for row in summary_result]
 
-            # Fetch raw records for the contract using ORM approach
+            # Fetch raw records for the contract using explicit SQL text construction
             raw_result = session.execute(
                 select([
                     text("\"rawdata\".\"ID\" AS id"),
@@ -551,19 +550,8 @@ def search():
                 ]).select_from(text("\"rawdata\""))
                 .where(text('"rawdata"."Res." = :res_value'))
                 .params(res_value=search_query)
-            )
-
-            raw_records = [{
-                'Start Date': row.start_date,
-                'Details': row.details,
-                'LPN/Tag number': row.lpn_tag_number,
-                'Vehicle Class': row.vehicle_class,
-                'Trip Cost': f"${float(row.trip_cost):,.2f}",
-                'Rego': row.rego
-            } for row in raw_result.scalars().all()]
-
-        finally:
-            session.close()
+            ).all()
+            raw_records = [{key: value for key, value in row.items()} for row in raw_result]
 
         # Pass the converted records to your template
         return render_template('search_results.html', summary_record=summary_record, raw_records=raw_records, search_query=search_query, last_5_contracts=last_5_contracts)
