@@ -390,7 +390,7 @@ def confirm_upload():
 
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
-                deleted_count =  delete_all_duplicate_records()
+                #deleted_count =  delete_all_duplicate_records()
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")  # Debug print
             return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
