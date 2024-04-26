@@ -385,12 +385,13 @@ def confirm_upload():
         try:
             engine = db.engine
             with engine.connect() as conn:
+                delete_all_duplicate_records()
                 create_rawdata_table(result_df)  # Ensure this function has error handling
                 result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
 
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
-                #deleted_count =  delete_all_duplicate_records()
+               
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")  # Debug print
             return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
