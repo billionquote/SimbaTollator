@@ -10,7 +10,7 @@ import tempfile
 from sqlalchemy.sql import text
 import traceback2
 from sqlalchemy.orm import Session
-from sqlalchemy import select, column
+from sqlalchemy import select, column, create_engine, Table, MetaData, func
 #from flask import current_app as app
 
 
@@ -217,21 +217,30 @@ def upload_file():
 
     return jsonify({'rcmPreview': rcm_html, 'tollsPreview': tolls_html})
 
-#data base management 
+#remove duplicates: 
 
-#DATABASE = 'database.db'
+def delete_duplicate_records():
+    # Connect to the database
+    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+    connection = engine.connect()
 
-#def get_db():
-    #db = getattr(g, '_database', None)
-    #if db is None:
-        #db = g._database = sqlite3.connect(DATABASE)
-    #return db
+    # Define the table from which you want to delete duplicate records
+    table_name = 'rawdata'
+    metadata = MetaData()
+    table = Table(table_name, metadata, autoload=True, autoload_with=engine)
 
-#@app.teardown_appcontext
-#def close_connection(exception):
-    #db = getattr(g, '_database', None)
-    #if db is not None:
-        #db.close()
+    # Build and execute the SQL query to delete duplicate records
+    delete_query = table.delete().where(
+        table.c.id.notin_(
+            select([func.min(table.c.id)]).group_by(table.c.column1, table.c.column2)  # Replace column1, column2, etc. with your columns
+        )
+    )
+    result = connection.execute(delete_query)
+    
+    # Close the database connection
+    connection.close()
+
+    return result.rowcount
 
 # Load DataFrames from session paths
 def load_dataframes(rcm_df_path, tolls_df_path):
@@ -375,6 +384,7 @@ def confirm_upload():
 
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
+                deleted_count = delete_duplicate_records()
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")  # Debug print
             return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
