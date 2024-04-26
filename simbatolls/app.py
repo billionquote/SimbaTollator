@@ -12,6 +12,7 @@ import traceback2
 from sqlalchemy.orm import Session
 from sqlalchemy import select, column, create_engine, Table, MetaData
 from io import StringIO
+from cleaner import cleaner
 #from flask import current_app as app
 
 
@@ -62,6 +63,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'validate'
 
+cleaner()
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)

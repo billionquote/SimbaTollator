@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 from io import StringIO
 
-def main():
+def cleaner():
     # Assume DATABASE_URL is set in your environment variables,
     # typically through Heroku's config vars
     database_url="postgres://ktbzjfczfdhzls:894a3004b174c857f5188cc7148b20e9a660ae6b9c70ce8071287bd7700689de@ec2-35-169-9-79.compute-1.amazonaws.com:5432/d2jinffuso3col"
@@ -154,4 +154,4 @@ def main():
         session.close()
 
 if __name__ == '__main__':
-    main()
+    cleaner()
