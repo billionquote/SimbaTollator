@@ -551,6 +551,8 @@ def search():
             # Extract the data into a list of dictionaries
             
             # Convert each RowProxy to a dictionary manually
+            for row in raw_result:
+                print(row)
             raw_records = []
             for row in raw_result:
                 record = {
