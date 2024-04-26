@@ -249,7 +249,7 @@ def load_dataframes(rcm_df_path, tolls_df_path):
     return rcm_df, tolls_df
 
 def populate_summary_table(df):
-    print("Original DataFrame:", df.head())  # Display initial data for debugging
+    #print("Original DataFrame:", df.head())  # Display initial data for debugging
 
     # Ensure 'Res.' column is a string and remove any trailing ".0"
     df['Res.'] = df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
@@ -296,7 +296,7 @@ def populate_summary_table(df):
     summary = summary.sort_values(by='Contract Number', ascending=False)
 
     # Final DataFrame to be returned
-    print("Final DataFrame for SQL operations:", summary.head())
+    #print("Final DataFrame for SQL operations:", summary.head())
     summary=summary.rename(columns={
         'Res.': 'Contract Number'
     })
@@ -384,7 +384,7 @@ def confirm_upload():
 
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
-                deleted_count = delete_duplicate_records()
+                deleted_count =  delete_all_duplicate_records()
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")  # Debug print
             return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
@@ -417,7 +417,7 @@ def update_or_insert_summary(summary):
                         'admin_fee': admin_fee
                     }
                     
-                    print("SQL Params:", params)  # Debugging output
+                    #print("SQL Params:", params)  # Debugging output
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
                     
