@@ -227,7 +227,7 @@ def delete_all_duplicate_records():
     session = Session()
 
     # Reading data into a DataFrame
-    query = session.execute("SELECT * FROM rawdata")
+    query = session.execute(text("SELECT * FROM rawdata"))
     df = pd.DataFrame(query.fetchall())
     df.columns = query.keys()
 
