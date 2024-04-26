@@ -10,7 +10,7 @@ import tempfile
 from sqlalchemy.sql import text
 import traceback2
 from sqlalchemy.orm import Session
-from sqlalchemy import select, column, create_engine, Table, MetaData, func
+from sqlalchemy import select, column, create_engine, Table, MetaData
 #from flask import current_app as app
 
 
@@ -219,9 +219,9 @@ def upload_file():
 
 #remove duplicates: 
 
-def delete_all_duplicate_records():
+def delete_duplicate_records():
     # Connect to the database
-    engine = db.engine
+    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
     connection = engine.connect()
 
     # Define the table from which you want to delete duplicate records
@@ -229,10 +229,10 @@ def delete_all_duplicate_records():
     metadata = MetaData()
     table = Table(table_name, metadata, autoload=True, autoload_with=engine)
 
-    # Build and execute the SQL query to delete all duplicate records
+    # Build and execute the SQL query to delete duplicate records
     delete_query = table.delete().where(
         table.c.id.notin_(
-            select([func.min(table.c.id)]).group_by()
+            select([func.min(table.c.id)]).group_by(table.c.column1, table.c.column2)  # Replace column1, column2, etc. with your columns
         )
     )
     result = connection.execute(delete_query)
@@ -384,7 +384,6 @@ def confirm_upload():
 
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
-                #deleted_count = delete_duplicate_records()
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")  # Debug print
             return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
