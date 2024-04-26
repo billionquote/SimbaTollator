@@ -17,7 +17,8 @@ def main():
     try:
         # Start a transaction
         session.begin()
-        
+        t=session.execute(text(""" select * from rawdata limit 1"""))
+        print(t)
         # Create a temporary table with distinct records
         session.execute(text("""
             CREATE TEMPORARY TABLE temp_rawdata AS 
