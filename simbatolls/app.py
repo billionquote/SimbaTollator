@@ -550,7 +550,18 @@ def search():
 
             # Extract the data into a list of dictionaries
             
-            raw_records = [dict(row) for row in raw_result]
+            # Convert each RowProxy to a dictionary manually
+            raw_records = []
+            for row in raw_result:
+                record = {
+                    'Start Date': row['start_date'],
+                    'Details': row['details'],
+                    'LPN/Tag number': row['lpn_tag_number'],
+                    'Vehicle Class': row['vehicle_class'],
+                    'Trip Cost': f"${float(row['trip_cost']):,.2f}",
+                    'Rego': row['rego']
+                }
+                raw_records.append(record)
         finally:
             session.close()
 
