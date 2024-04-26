@@ -556,12 +556,12 @@ def search():
             raw_records = []
             for row in raw_result:
                 record = {
-                    'Start Date': row['start_date'],
-                    'Details': row['details'],
-                    'LPN/Tag number': row['lpn_tag_number'],
-                    'Vehicle Class': row['vehicle_class'],
-                    'Trip Cost': f"${float(row['trip_cost']):,.2f}",
-                    'Rego': row['rego']
+                    'Start Date': row[0],  # Assuming 'Start Date' is the first column
+                    'Details': row[1],     # Assuming 'Details' is the second column
+                    'LPN/Tag number': row[2],  # and so forth
+                    'Vehicle Class': row[3],
+                    'Trip Cost': f"${float(row[4]):,.2f}",  # Assuming 'Trip Cost' is the fifth column
+                    'Rego': row[5]         # Assuming 'Rego' is the sixth column
                 }
                 raw_records.append(record)
         finally:
