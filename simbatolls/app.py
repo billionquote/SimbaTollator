@@ -374,7 +374,6 @@ def create_rawdata_table(result_df):
 
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
-@shared_task
 def confirm_upload():
     with app.app_context():
         rcm_df_path = session.get('rcm_df_path')
