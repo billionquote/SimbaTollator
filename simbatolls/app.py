@@ -331,8 +331,6 @@ def create_rawdata_table(result_df):
     engine = db.engine
     rawdata_table.create(engine, checkfirst=True)
 
-
-
 # Usage in your application would not change other than ensuring the DataFrame is passed
 
 @app.route('/confirm-upload', methods=['POST'])
@@ -489,8 +487,6 @@ def summary():
                            total_sum_of_toll_cost=total_sum_of_toll_cost,
                            total_contract_toll_cost=total_contract_toll_cost)
 
-
-
 # Define a custom filter
 @app.template_filter('compact_number')
 def compact_number_format(value):
@@ -531,7 +527,7 @@ def get_last_5_contracts():
 @login_required
 def search():
     last_5_contracts = get_last_5_contracts()
-    search_query = request.form.get('search_query') if request.method == 'POST' else request.args.get('search_query', None)
+    search_query = request.form.get('search_query') if request.method was 'POST' else request.args.get('search_query', None)
 
     if search_query:
         session = Session(bind=db.engine)
@@ -545,14 +541,14 @@ def search():
             # Fetch raw records for the contract using ORM approach
             raw_result = session.execute(
                 select(
-                    text("\"id\" AS id"),
-                    text("\"Start Date\" AS start_date"),
-                    text("\"Details\" AS details"),
-                    text("\"LPN/Tag number\" AS lpn_tag_number"),
-                    text("\"Vehicle Class\" AS vehicle_class"),
-                    text("\"Trip Cost\" AS trip_cost"),
-                    text("\"Rego\" AS rego")
-                ).where(text('"Res." = :res_value')).params(res_value=search_query)
+                    text("\"rawdata\".\"ID\" AS id"),
+                    text("\"rawdata\".\"Start Date\" AS start_date"),
+                    text("\"rawdata\".\"Details\" AS details"),
+                    text("\"rawdata\".\"LPN/Tag number\" AS lpn_tag_number"),
+                    text("\"rawdata\".\"Vehicle Class\" AS vehicle_class"),
+                    text("\"rawdata\".\"Trip Cost\" AS trip_cost"),
+                    text("\"rawdata\".\"Rego\" AS rego")
+                ).where(text('"rawdata"."Res." = :res_value')).params(res_value=search_query)
             )
             raw_records = [{
                 'Start Date': row.start_date,
@@ -572,7 +568,6 @@ def search():
     else:
         # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
-
 
 
 if __name__ == '__main__':
