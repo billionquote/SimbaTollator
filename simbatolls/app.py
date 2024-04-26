@@ -540,7 +540,7 @@ def search():
 
             # Fetch raw records for the contract using literal text for proper SQL execution
             raw_query = text("""
-                SELECT " distinct "Start Date" AS start_date, "Details" AS details,
+                SELECT distinct "Start Date" AS start_date, "Details" AS details,
                        "LPN/Tag number" AS lpn_tag_number, "Vehicle Class" AS vehicle_class,
                        "Trip Cost" AS trip_cost, "Rego" AS rego
                 FROM rawdata
