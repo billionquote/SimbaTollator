@@ -527,7 +527,7 @@ def get_last_5_contracts():
 @login_required
 def search():
     last_5_contracts = get_last_5_contracts()
-    search_query = request.form.get('search_query') if request.method was 'POST' else request.args.get('search_query', None)
+    search_query = request.form.get('search_query') if request.method == 'POST' else request.args.get('search_query', None)
 
     if search_query:
         session = Session(bind=db.engine)
