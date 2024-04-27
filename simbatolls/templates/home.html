@@ -156,6 +156,13 @@
             </div>
             <button type="button" class="btn btn-success" onclick="uploadFiles()">Upload Files</button>
         </form>
+
+<!-- Progress bar container -->
+        <div class="progress" style="margin-top: 20px;">
+            <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Waiting...</div>
+        </div>
+
+        
         
         <div id="rcmPreview" style="margin-top: 20px;"style="margin-top: 20px;"></div>
         <div id="tollsPreview" style="margin-top: 20px;"></div>
@@ -224,20 +231,50 @@ function validateLicense() {
 }
 
         function confirmUpload() {
-            var jobId = 'your_job_id_here';  // Ensure this is the correct job ID obtained from your context or previous interaction
-            $.ajax({
-                url: '/confirm-upload?job_id=' + jobId,
-                type: 'POST',
-                success: function(response) {
-                    alert('Data confirmed and saved to database.');
-                    window.location.href = '/summary';
-                },
-                error: function() {
-                    alert('Error confirming upload.');
-                }
-            });
+            var jobId = 'your_job_id_here';  // Ensure this is correctly set or retrieved
+            $('#progressBar').css('width', '10%').attr('aria-valuenow', 10).text('Starting...');
+            checkJobStatus(jobId);
         }
 
+        function checkJobStatus(jobId) {
+            fetch(`/job-status/${jobId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'finished') {
+                    $('#progressBar').css('width', '100%').attr('aria-valuenow', 100).text('Upload Complete');
+                    setTimeout(() => { window.location.href = '/summary'; }, 2000);  // Redirect after 2 seconds
+                } else if (data.status === 'failed') {
+                    $('#progressBar').addClass('bg-danger').css('width', '100%').text('Failed');
+                } else {
+                    let progress = parseInt($('#progressBar').attr('aria-valuenow'));
+                    progress = Math.min(progress + 10, 100);  // Incremental update, adjust as necessary
+                    $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress).text(progress + '% Processing...');
+                    setTimeout(() => checkJobStatus(jobId), 2000);  // Check again after 2 seconds
+                }
+            })
+            .catch(error => console.error('Error checking job status:', error));
+        }
+        
+        
+        // Example when you get the job ID from server after enqueueing the job
+        $('#upload-form').submit(function(e) {
+            e.preventDefault();
+            // Ajax call to start the job and get job ID
+            $.ajax({
+                url: '/start-job',  // Your endpoint to start the job
+                type: 'POST',
+                data: new FormData(this),
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    let jobId = data.job_id;  // Assuming the job ID is returned in this field
+                    checkJobStatus(jobId);  // Start checking job status
+                },
+                error: function(xhr, status, error) {
+                    console.error("Start job failed:", error);
+                }
+            });
+        });
 
 
         function togglePasswordVisibility() {

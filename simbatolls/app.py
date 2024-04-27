@@ -381,6 +381,7 @@ def convert_df_types(df):
 
 def populate_rawdata_from_df(result_df):
     result_df = convert_df_types(result_df)
+    result_df['Res.'] = result_df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
     try:
         for _, row in result_df.iterrows():
             existing_record = RawData.query.filter_by(
@@ -738,7 +739,7 @@ def search():
                 }
                 for record in raw_records
             ]
-            #print(raw_records)
+            print(f'RAW RECORDS FOR SUMMARY{raw_records_dicts}')
         finally:
             session.close()
 
