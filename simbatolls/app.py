@@ -417,7 +417,8 @@ def confirm_upload():
         result_rego = ps.sqldf(query_rego, locals())
         
         combined_columns = list(set(result_tag.columns).union(set(result_rego.columns)))
-        result_df=result_tag[combined_columns].append(result_rego[combined_columns], ignore_index=True)
+        # Combine the results from both joins using concat instead of append
+        result_df = pd.concat([result_tag, result_rego], ignore_index=True).drop_duplicates()
         result_df.drop_duplicates(inplace=True)
 
         if result_df.empty:
