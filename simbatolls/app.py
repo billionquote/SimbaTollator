@@ -50,10 +50,21 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-#app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
-#app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+#create Celery
+app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
+app.config['CELERY_RESULT_BACKEND'] = os.environ['REDIS_URL']
 
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_RESULT_BACKEND'],
+        broker=app.config['CELERY_BROKER_URL']
+    )
+    celery.conf.update(app.config)
+    return celery
 
+# Initialize Celery
+celery = make_celery(app)
 
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
 migrate = Migrate(app, db)
@@ -161,6 +172,7 @@ def validate_license():
 
 @app.route('/upload', methods=['POST','GET'])
 @login_required
+@celery.task
 def upload_file():
     # Ensure there are files in the request
     if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
@@ -380,6 +392,7 @@ def create_rawdata_table(result_df):
 
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
+@celery.task
 def confirm_upload():
     with app.app_context():
         rcm_df_path = session.get('rcm_df_path')
