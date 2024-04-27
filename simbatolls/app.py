@@ -231,9 +231,24 @@ def upload_file():
     tolls_html = tolls_df.head(3).to_html()
 
 
-    job = q.enqueue(confirm_upload_task, rcm_df.to_json(), tolls_df.to_json())
+    if rcm_df.empty or tolls_df.empty:
+        return jsonify({'message': 'Uploaded files are empty'}), 400
 
-    return jsonify({'rcmPreview': rcm_html, 'tollsPreview': tolls_html, 'message': 'Files are being processed', 'job_id': job.get_id()}), 202
+    rcm_json = rcm_df.to_json()
+    tolls_json = tolls_df.to_json()
+
+    # Logging data to ensure it's correct before queuing
+    print(f"RCM JSON: {rcm_json}")
+    print(f"Tolls JSON: {tolls_json}")
+
+    job = q.enqueue(confirm_upload_task, rcm_json, tolls_json)
+
+    return jsonify({
+        'rcmPreview': rcm_df.head(3).to_html(),
+        'tollsPreview': tolls_df.head(3).to_html(),
+        'message': 'Files are being processed',
+        'job_id': job.get_id()
+    }), 202
 
 #data base management 
 
@@ -411,8 +426,8 @@ def create_or_update_table(engine, result_df):
 # Usage in your application would not change other than ensuring the DataFrame is passed
 def confirm_upload_task(rcm_data_json, tolls_data_json):
     try: 
-        rcm_df = pd.read_json(rcm_data_json)
-        tolls_df = pd.read_json(tolls_data_json)
+        rcm_df = pd.read_json(StringIO(rcm_data_json))
+        tolls_df = pd.read_json(StringIO(tolls_data_json))
     
     except ValueError as e:
         print("Error parsing JSON data: We are in Confirm_upload_task", e)
@@ -444,7 +459,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
     """
     result_rego = ps.sqldf(query_rego, locals())
     print(f'result tag: {result_tag.head(5)}') 
-    print(f'result tag: {result_reg.head(5)}') 
+    print(f'result tag: {result_rego.head(5)}') 
     result_df = pd.concat([result_tag, result_rego], ignore_index=True).drop_duplicates()
     print(f'result df_____ HERE: {result_df.head(5)}')
     result_df.drop_duplicates(inplace=True)
