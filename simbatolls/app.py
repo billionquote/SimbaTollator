@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, g,session, json
 from werkzeug.utils import secure_filename
 import pandas as pd
@@ -41,10 +42,10 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
 def home():
     return render_template('home.html')
 #use ful comand for flask upgrade poetry run python -m flask db init 
-import os
+
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-#database_url =os.getenv('DATABASE_URL')
-database_url="postgres://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr"
+database_url =os.getenv('DATABASE_URL')
+#database_url="postgres://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr"
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -356,7 +357,30 @@ def populate_summary_table(df):
     })
     return summary, grand_total, admin_fee_total
 
+def convert_df_types(df):
+    # Convert dates to datetime objects if not already
+    df['Start Date'] = pd.to_datetime(df['Start Date'])
+    df['End Date'] = pd.to_datetime(df['End Date'])
+    df['Pickup Date Time'] = pd.to_datetime(df['Pickup Date Time'])
+    df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
+
+    # Ensure all other fields are treated as strings or their specific type
+    string_fields = ['Details', 'LPN/Tag number', 'Vehicle Class', 'Trip Cost',
+                     'Fleet ID', 'Date', 'Rego', 'Res', 'Ref', 'Update', 'Notes',
+                     'Status', 'Dropoff', 'Day', 'Dropoff Date', 'Time', 'Pickup',
+                     'Pickup Date', 'Time_c13', 'Category', 'Vehicle', 'Colour',
+                     'Items', 'Insurance', 'Departure', 'Next Rental', 'RCM_Rego']
+    
+    for field in string_fields:
+        df[field] = df[field].astype(str)
+
+    # Convert integer fields
+    df['# Days'] = df['# Days'].astype(int)
+
+    return df
+
 def populate_rawdata_from_df(result_df):
+    result_df = convert_df_types(result_df)
     try:
         for _, row in result_df.iterrows():
             exists = RawData.query.filter_by(
