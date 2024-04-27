@@ -420,19 +420,19 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
     if result_df.empty:
         print("Debug: Resultant DataFrame is empty")
         return {'error': 'Processed data is empty'}, 400
+    with app.app_context(): 
+        try:
+            engine = db.engine
+            with engine.connect() as conn:
+                create_rawdata_table(result_df)
+                result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
+                summary, grand_total, admin_fee_total = populate_summary_table(result_df)
+                update_or_insert_summary(summary)
+        except Exception as e:
+            print(f"Debug: Exception in database operations - {e}")
+            return {'error': 'Database operation failed', 'details': str(e)}, 500
 
-    try:
-        engine = db.engine
-        with engine.connect() as conn:
-            create_rawdata_table(result_df)
-            result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
-            summary, grand_total, admin_fee_total = populate_summary_table(result_df)
-            update_or_insert_summary(summary)
-    except Exception as e:
-        print(f"Debug: Exception in database operations - {e}")
-        return {'error': 'Database operation failed', 'details': str(e)}, 500
-
-    return {'message': 'Upload and processing successful'}, 200
+        return {'message': 'Upload and processing successful'}, 200
 
 
 @app.route('/confirm-upload', methods=['POST'])
