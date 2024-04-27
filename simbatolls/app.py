@@ -164,6 +164,7 @@ def upload_file():
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
+    rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
     #try:
         #rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
     #except ValueError:
@@ -187,7 +188,7 @@ def upload_file():
         #print('Could not handle formatting toll file') # Handle the case where conversion to int is not possible
     tolls_df = tolls_df.drop_duplicates()
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(float, errors='ignore')
-   
+    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
     # Convert the first 3 rows of each DataFrame to HTML
     rcm_html = rcm_df.head(3).to_html()
     tolls_html = tolls_df.head(3).to_html()
@@ -466,7 +467,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
         WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
     """
     result_rego = ps.sqldf(query_rego, locals())
-    print(f'result tag: {result_tag.head(5)}') 
+    print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
     print(f'result Rego_____: {result_rego.head(5)}') 
     if result_rego.empty:
         result_df=result_tag

@@ -17,4 +17,4 @@ rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
 rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
 rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
 
-print(rcm_df['RCM_Rego'])
+print(rcm_df['Vehicle'])
