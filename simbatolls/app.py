@@ -177,6 +177,13 @@ def upload_file():
     rcm_df.columns=rcm_df.iloc[2]
     rcm_df=rcm_df.iloc[3:]
     rcm_df.reset_index(drop=True, inplace=True)
+    
+    rcm_df['RCM_Rego'] = rcm_df.apply(
+                                        lambda row: row['Vehicle'].split(str(row['Pickup']))[0].strip()
+                                        if pd.notna(row['Pickup']) and pd.notna(row['Vehicle']) and str(row['Pickup']) in str(row['Vehicle'])
+                                        else row['Vehicle'],
+                                        axis=1
+                                    )
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
@@ -388,16 +395,29 @@ def confirm_upload():
         if rcm_df.empty or tolls_df.empty:
             print("Debug: DataFrames are empty")  # Debug print
             return jsonify({'error': 'DataFrames are empty'}), 400
-
+        
+        rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
         # Using pandasql to perform the join operation
-        query = """
+        query_tag = """
             SELECT DISTINCT * 
             FROM tolls_df
             INNER JOIN rcm_df 
             ON tolls_df.[LPN/Tag number] = rcm_df.[Vehicle]
             WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
         """
-        result_df = ps.sqldf(query, locals())
+        result_tag = ps.sqldf(query_tag, locals())
+        
+        query_rego = """
+            SELECT DISTINCT * 
+            FROM tolls_df
+            INNER JOIN rcm_df 
+            ON tolls_df.Rego= rcm_df.RCM_Rego
+            WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+        """
+        result_rego = ps.sqldf(query_rego, locals())
+        
+        combined_columns = list(set(result_tag.columns).union(set(result_rego.columns)))
+        result_df=result_tag[combined_columns].append(result_rego[combined_columns], ignore_index=True)
         result_df.drop_duplicates(inplace=True)
 
         if result_df.empty:
