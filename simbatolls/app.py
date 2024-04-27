@@ -375,7 +375,7 @@ def add_column(engine, table_name, column_name, column_type):
         conn.execute(text(add_stmt))
 
 def create_or_update_table(engine, result_df):
-    metadata = MetaData(bind=engine)
+    metadata = MetaData(ds)
     table_name = 'rawdata'
 
     # Reflect the existing database schema
@@ -443,8 +443,10 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
         WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
     """
     result_rego = ps.sqldf(query_rego, locals())
-    
+    print(f'result tag: {result_tag.head(5)}') 
+    print(f'result tag: {result_reg.head(5)}') 
     result_df = pd.concat([result_tag, result_rego], ignore_index=True).drop_duplicates()
+    print(f'result df_____ HERE: {result_df.head(5)}')
     result_df.drop_duplicates(inplace=True)
 
     if result_df.empty:
