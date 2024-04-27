@@ -454,9 +454,13 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
         SELECT DISTINCT * 
         FROM tolls_df
         INNER JOIN rcm_df 
-        ON tolls_df.[LPN/Tag number] = rcm_df.[Vehicle]
+        ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[Vehicle] as VARCHAR)
         WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
     """
+    print(f'MY OUTPUT TO CHECK RCM DATA_RCMMMM: {rcm_df[['Vehicle', 'Pickup Date Time', 'Dropoff Date Time']].head(5)}')
+    print(f'MY OUTPUT TO CHECK TOOOOOLLLLL DATA: {tolls_df[['LPN/Tag number', 'Start Date']].head(5)}')
+  
+
     result_tag = ps.sqldf(query_tag, locals())
 
     query_rego = """
