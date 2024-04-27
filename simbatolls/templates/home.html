@@ -289,7 +289,32 @@
                         });
                     }, 1000); // Update every second
                 }
-                
+                $(document).ready(function() {
+                    $('#confirmBtn').click(function() {
+                        var jobId = $(this).data('jobId'); // Ensure jobId is stored in the button's data-jobId attribute after job start
+                        $(this).hide(); // Hide the button
+                        $('.progress').show(); // Show the progress bar
+                        $('#progressBar').css('width', '1%').attr('aria-valuenow', 1).text('Processing...');
+                        simulateProgress(jobId); // Call this function to simulate progress
+                    });
+                });
+            
+                function simulateProgress(jobId) {
+                    var progress = 1;
+                    var interval = setInterval(function() {
+                        if (progress < 100) {
+                            progress++; // Increment progress
+                            $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress);
+                            $('#progressBar').text(progress + '% Processing...');
+                        } else {
+                            clearInterval(interval);
+                            $('#progressBar').text('Complete! Redirecting...');
+                            setTimeout(function() {
+                                window.location.href = '/summary'; // Redirect when complete
+                            }, 2000);
+                        }
+                    }, 1800); // Adjust the interval to fit the 3 minutes total for 100%
+                }
                 function checkJobStatus(jobId, callback) {
                     $.ajax({
                         url: '/job-status/' + jobId,

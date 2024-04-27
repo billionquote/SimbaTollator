@@ -505,6 +505,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
                 update_existing_res_values()
+                delete_null_trip_cost_records()
                 print(f'FINISHED DOING Populate summary table')
                 
         except Exception as e:
@@ -606,15 +607,32 @@ def update_or_insert_summary(summary):
         raise
 
 
-
+#subsidiary functions for cleaning 
 def update_existing_res_values():
     with db.engine.connect() as connection:
-        result = connection.execute("""
+        result = connection.execute(text("""
         UPDATE rawdata
         SET res = TRIM(TRAILING '.0' FROM res)
         WHERE res LIKE '%.0'
-        """)
+        """))
         print(f"Updated {result.rowcount} rows.")
+def delete_null_trip_cost_records():
+    try:
+        # Begin a transaction
+        db.session.begin()
+
+        # Query to find all records where 'trip_cost' is NULL
+        records_to_delete = RawData.query.filter(RawData.trip_cost.is_(None))
+
+        # Delete these records
+        records_to_delete.delete(synchronize_session=False)
+
+        # Commit changes to the database
+        db.session.commit()
+        print("Deleted all records with null 'trip_cost'.")
+    except Exception as e:
+        db.session.rollback()  # Roll back on error
+        print(f"Failed to delete records: {e}")
 
 def fetch_summary_data():
     # Create a session object
