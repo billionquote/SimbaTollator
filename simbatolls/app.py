@@ -375,12 +375,12 @@ def create_rawdata_table(result_df):
     engine = db.engine
         # SQL command to alter the column type
     alter_command = """
-    ALTER TABLE rawdata ALTER COLUMN vehicle TYPE VARCHAR;
+    ALTER TABLE rawdata ALTER COLUMN Vehicle TYPE VARCHAR;
     """  # Adjust the command according to your DBMS
 
     # Execute the command
     with engine.connect() as connection:
-        connection.execute(alter_command)
+        connection.execute(text(alter_command))
         print("Column type altered successfully.")
     rawdata_table.create(engine, checkfirst=True)
 
