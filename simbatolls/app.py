@@ -165,6 +165,7 @@ def upload_file():
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
     rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
+    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
     #try:
         #rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
     #except ValueError:
