@@ -424,6 +424,7 @@ def create_or_update_table(engine, result_df):
     batch_size = 100  # Adjust the batch size based on your server capacity or performance needs
     with engine.connect() as conn:
         for start in range(0, len(result_df), batch_size):
+            print(f'we are in batch {start} of {len(result_df)} rows we are writing')
             end = start + batch_size
             batch = result_df.iloc[start:end]
             conn.execute(table.insert(), batch.to_dict(orient='records'))
@@ -466,8 +467,11 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
     """
     result_rego = ps.sqldf(query_rego, locals())
     print(f'result tag: {result_tag.head(5)}') 
-    print(f'result tag: {result_rego.head(5)}') 
-    result_df = pd.concat([result_tag, result_rego], ignore_index=True)
+    print(f'result Rego_____: {result_rego.head(5)}') 
+    if result_rego.empty:
+        result_df=result_tag
+    else:
+        result_df = pd.concat([result_tag, result_rego], ignore_index=True)
     print(f'result df_____ HERE: {result_df.head(5)}')
     result_df.drop_duplicates(inplace=True)
 
@@ -528,7 +532,7 @@ def update_or_insert_summary(summary):
             transaction = conn.begin()
             try:
                 for index, row in summary.iterrows():
-                    #print(f'row: {row}')
+                    print(f'update_or_insert_summary is working: row: {row}')
                     #print(f'row: {row['admin_fee']}')
                     admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
                     pickup_date_time = row['pickup_date_time'].to_pydatetime() if isinstance(row['pickup_date_time'], pd.Timestamp) else row['pickup_date_time']
