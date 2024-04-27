@@ -421,8 +421,9 @@ def populate_rawdata_from_df(result_df):
 
             if existing_record:
                 # Update fields that may change
-                existing_record.trip_cost = row['Trip Cost']
+                #existing_record.trip_cost = row['Trip Cost']
                 # Add other fields if there are more that can change
+                pass
             else:
                 # Create a new record if it does not exist
                 new_record = RawData(
@@ -563,15 +564,17 @@ def confirm_upload():
     except Exception as e:
         return jsonify({'error': 'Failed to retrieve job status', 'details': str(e)}), 500
 
-@app.route('/job-status/<job_id>')
+@app.route('/job-status/<job_id>', methods=['GET'])
 def job_status(job_id):
     job = q.fetch_job(job_id)
-    if job.is_finished:
-        return jsonify({'status': 'finished'}), 200
+    if not job:
+        return jsonify({'status': 'not found'}), 404
+    elif job.is_finished:
+        return jsonify({'status': 'finished', 'result': job.result}), 200
     elif job.is_failed:
         return jsonify({'status': 'failed', 'message': str(job.exc_info)}), 500
     else:
-        return jsonify({'status': 'pending'}), 202
+        return jsonify({'status': 'in progress'}), 202
 
 
 def update_or_insert_summary(summary):
@@ -748,7 +751,7 @@ def search():
             print(f'Printing search records: {raw_records}')
             raw_records_dicts = [
                 {
-                    'Toll Time': record.start_date.strftime('%Y-%m-%d %H:%M:%S') if record.start_date else '',
+                    'Toll Date/Time': record.start_date.strftime('%Y-%m-%d %H:%M:%S') if record.start_date else '',
                     'Details': record.details,
                     'Tag Number': record.lpn_tag_number,
                     'Vehicle Class': record.vehicle_class,
