@@ -106,6 +106,46 @@ class Summary(db.Model):
     def __repr__(self):
         return f"<Summary contract_number={self.contract_number} num_of_rows={self.num_of_rows}>"
 
+class RawData(db.Model):
+    __tablename__ = 'rawdata'
+
+    id = db.Column(db.Integer, primary_key=True)
+    start_date = db.Column(db.DateTime)
+    details = db.Column(db.String)
+    lpn_tag_number = db.Column(db.String)
+    vehicle_class = db.Column(db.Integer)
+    trip_cost = db.Column(db.String)
+    fleet_id = db.Column(db.String)
+    end_date = db.Column(db.DateTime)
+    date = db.Column(db.DateTime)
+    rego = db.Column(db.String)
+    res = db.Column(db.String)
+    ref = db.Column(db.String)
+    update = db.Column(db.String)
+    notes = db.Column(db.String)
+    status = db.Column(db.String)
+    dropoff = db.Column(db.String)
+    day = db.Column(db.String)
+    dropoff_date = db.Column(db.String)
+    time = db.Column(db.String)
+    pickup = db.Column(db.String)
+    pickup_date = db.Column(db.String)
+    time_c13 = db.Column(db.String)
+    num_days = db.Column(db.Integer, name='# Days')
+    category = db.Column(db.String)
+    vehicle = db.Column(db.String)
+    colour = db.Column(db.String)
+    items = db.Column(db.String)
+    insurance = db.Column(db.String)
+    departure = db.Column(db.String)
+    next_rental = db.Column(db.String)
+    pickup_date_time = db.Column(db.DateTime)
+    dropoff_date_time = db.Column(db.DateTime)
+    rcm_rego = db.Column(db.String)
+    
+    def __repr__(self):
+        return f"<RawData id={self.id}>"
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -331,107 +371,84 @@ def populate_summary_table(df):
     })
     return summary, grand_total, admin_fee_total
 
-def determine_column_type(dtype):
-    if dtype == 'int64':
-        return Integer()
-    elif dtype == 'float64':
-        return Float()
-    elif dtype == 'object':
-        return String()
-    else:
-        return String()  # Default to String for unexpected data types
-
-def alter_column_type(engine, table_name, column_name, new_type):
-    alter_stmt = f'ALTER TABLE {table_name} ALTER COLUMN "{column_name}" TYPE {new_type} USING "{column_name}"::{new_type}'
+def populate_rawdata_from_df(result_df):
     try:
-        with engine.connect() as conn:
-            conn.execute(text(alter_stmt))
-        print(f"Column {column_name} in {table_name} altered to {new_type}.")
+        for _, row in result_df.iterrows():
+            exists = RawData.query.filter_by(
+                    start_date=row['Start Date'],
+                    details=row['Details'],
+                    lpn_tag_number=row['LPN/Tag number'],
+                    vehicle_class=row['Vehicle Class'],
+                    trip_cost=row['Trip Cost'],
+                    fleet_id=row['Fleet ID'],
+                    end_date=row['End Date'],
+                    date=row['Date'],
+                    rego=row['Rego'],
+                    res=row['Res.'],
+                    ref=row['Ref.'],
+                    update=row['Update'],
+                    notes=row['Notes'],
+                    status=row['Status'],
+                    dropoff=row['Dropoff'],
+                    day=row['Day'],
+                    dropoff_date=row['Dropoff Date'],
+                    time=row['Time'],
+                    pickup=row['Pickup'],
+                    pickup_date=row['Pickup Date'],
+                    time_c13=row['Time_c13'],
+                    num_days=row['# Days'],
+                    category=row['Category'],
+                    vehicle=row['Vehicle'],
+                    colour=row['Colour'],
+                    items=row['Items'],
+                    insurance=row['Insurance'],
+                    departure=row['Departure'],
+                    next_rental=row['Next Rental'],
+                    pickup_date_time=row['Pickup Date Time'],
+                    dropoff_date_time=row['Dropoff Date Time'],
+                    rcm_rego=row['RCM_Rego']
+            ).first() is not None
+            if not exists:
+                raw_data_entry = RawData(
+                    start_date=row['Start Date'],
+                    details=row['Details'],
+                    lpn_tag_number=row['LPN/Tag number'],
+                    vehicle_class=row['Vehicle Class'],
+                    trip_cost=row['Trip Cost'],
+                    fleet_id=row['Fleet ID'],
+                    end_date=row['End Date'],
+                    date=row['Date'],
+                    rego=row['Rego'],
+                    res=row['Res.'],
+                    ref=row['Ref.'],
+                    update=row['Update'],
+                    notes=row['Notes'],
+                    status=row['Status'],
+                    dropoff=row['Dropoff'],
+                    day=row['Day'],
+                    dropoff_date=row['Dropoff Date'],
+                    time=row['Time'],
+                    pickup=row['Pickup'],
+                    pickup_date=row['Pickup Date'],
+                    time_c13=row['Time_c13'],
+                    num_days=row['# Days'],
+                    category=row['Category'],
+                    vehicle=row['Vehicle'],
+                    colour=row['Colour'],
+                    items=row['Items'],
+                    insurance=row['Insurance'],
+                    departure=row['Departure'],
+                    next_rental=row['Next Rental'],
+                    pickup_date_time=row['Pickup Date Time'],
+                    dropoff_date_time=row['Dropoff Date Time'],
+                    rcm_rego=row['RCM_Rego']
+                )
+            db.session.add(raw_data_entry)
+        db.session.commit()
     except Exception as e:
-        print(f"Failed to alter column type: {e}")
-        raise  # Re-raise the exception after logging
-
-def add_column(engine, table_name, column_name, column_type):
-    sql_type = {
-        String: 'VARCHAR',
-        Integer: 'INTEGER',
-        Float: 'FLOAT'
-    }.get(column_type, 'VARCHAR')
-    
-    add_stmt = f'ALTER TABLE {table_name} ADD COLUMN "{column_name}" {sql_type}'
-    try:
-        with engine.connect() as conn:
-            conn.execute(text(add_stmt))
-        print(f"Added column {column_name} of type {sql_type} to {table_name}.")
-    except Exception as e:
-        print(f"Failed to add column: {e}")
-        raise  # Re-raise the exception after logging
-
-def create_or_update_table(engine, result_df):
-    metadata = MetaData()
-    table_name = 'rawdata'
-    metadata.reflect(engine, only=[table_name])
-    table = metadata.tables.get(table_name)
-    column_types = {
-        'id': Integer,
-        'Start Date': DateTime,
-        'Details': String,
-        'LPN/Tag number': String,
-        'Vehicle Class': Integer,
-        'Trip Cost': String,
-        'Fleet ID': String,
-        'End Date': DateTime,
-        'Date': DateTime,
-        'Rego': String,
-        '#': Integer,
-        'Res.': String,
-        'Ref.': String,
-        'Update': String,
-        'Notes': String,
-        'Status': String,
-        'Dropoff': String,
-        'Day': String,
-        'Dropoff Date': String,
-        'Time': String,
-        'Pickup': String,
-        'Pickup Date': String,
-        'Time_c13': String,
-        '# Days': Integer,
-        'Category': String,
-        'Vehicle': String,
-        'Colour': String,
-        'Items': String,
-        'Insurance': String,
-        'Departure': String,
-        'Next Rental': String,
-        'Pickup Date Time': DateTime,
-        'Dropoff Date Time': DateTime,
-        'RCM_Rego': String  # Assuming you want to add this as a new column
-    }
-    if not table:
-        new_columns = [Column(name, dtype) for name, dtype in column_types.items()]
-        table = Table(table_name, metadata, *new_columns)
-        table.create(engine)
-    else:
-        with engine.connect() as conn:
-            for name, dtype in column_types.items():
-                if name not in table.c:
-                    add_column(engine, table_name, name, dtype)
-                elif not isinstance(table.c[name].type, dtype):
-                    actual_type = str(table.c[name].type).split('(')[0]  # Get only the type name
-                    desired_type = str(dtype).split('(')[0]  # Convert SQLAlchemy type to string
-                    if actual_type != desired_type:
-                        alter_column_type(engine, table_name, name, desired_type)
-    batch_size=250
-    with engine.connect() as conn:
-        for start in range(0, len(result_df), batch_size):
-            batch = result_df.iloc[start:start + batch_size]
-            try:
-                conn.execute(table.insert(), batch.to_dict(orient='records'))
-                print(f"Batch from {start} to {start + batch_size} inserted successfully.")
-            except Exception as e:
-                print(f"Failed to insert batch starting at {start}: {e}")
-                raise
+        db.session.rollback()
+        print(f"Error populating rawdata table: {e}")
+        raise
 
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
@@ -492,7 +509,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
             engine = db.engine
             with engine.connect() as conn:
                 print(f'STARTED DOING CREATE OR UPDATE TABLE')
-                create_or_update_table(engine,result_df)
+                populate_rawdata_from_df(result_df)
                 print(f'FINISHED DOING CREATE OR UPDATE TABLE')
                 #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
                 print(f'STARTED DOING Populate summary')
