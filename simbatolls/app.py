@@ -373,6 +373,15 @@ def create_rawdata_table(result_df):
     # Create table dynamically
     rawdata_table = Table('rawdata', metadata, *columns, extend_existing=True)
     engine = db.engine
+        # SQL command to alter the column type
+    alter_command = """
+    ALTER TABLE rawdata ALTER COLUMN vehicle TYPE VARCHAR;
+    """  # Adjust the command according to your DBMS
+
+    # Execute the command
+    with engine.connect() as connection:
+        connection.execute(alter_command)
+        print("Column type altered successfully.")
     rawdata_table.create(engine, checkfirst=True)
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
