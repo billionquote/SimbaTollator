@@ -363,14 +363,14 @@ def determine_column_type(dtype):
         return String()  # Default to String for unexpected data types
 
 def alter_column_type(engine, table_name, column_name, new_type):
-    # This function will generate and execute SQL to alter the column type
-    alter_stmt = f'ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE VARCHAR USING {column_name}::VARCHAR'
+    # Generate and execute SQL to alter the column type
+    alter_stmt = f'ALTER TABLE {table_name} ALTER COLUMN "{column_name}" TYPE VARCHAR USING "{column_name}"::VARCHAR'
     with engine.connect() as conn:
         conn.execute(text(alter_stmt))
 
 def add_column(engine, table_name, column_name, column_type):
-    # This function adds a new column to an existing table
-    add_stmt = f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}'
+    # Adds a new column to an existing table
+    add_stmt = f'ALTER TABLE {table_name} ADD COLUMN "{column_name}" {column_type}'
     with engine.connect() as conn:
         conn.execute(text(add_stmt))
 
@@ -378,11 +378,11 @@ def create_or_update_table(engine, result_df):
     metadata = MetaData(bind=engine)
     table_name = 'rawdata'
 
-    # Reflect existing database schema
+    # Reflect the existing database schema
     metadata.reflect(bind=engine)
     inspector = inspect(engine)
-    existing_columns = inspector.get_columns(table_name) if inspector.has_table(table_name) else []
-
+    existing_columns = {col['name']: col['type'] for col in inspector.get_columns(table_name)} if inspector.has_table(table_name) else {}
+    print(existing_columns)
     # Mapping of DataFrame dtypes to SQLAlchemy types
     dtype_map = {
         'int64': Integer,
@@ -390,27 +390,22 @@ def create_or_update_table(engine, result_df):
         'object': String
     }
 
-    # Define desired columns from DataFrame ensuring 'Vehicle' and 'LPN/Tag number' are Strings
-    desired_columns = [
-        Column(name, String if name in ['Vehicle', 'LPN/Tag number'] else dtype_map[str(dtype)])
-        for name, dtype in result_df.dtypes.items()
-    ]
-
     if table_name in metadata.tables:
         # Table exists, update schema if necessary
         table = metadata.tables[table_name]
-        with engine.connect() as conn:
-            for column in desired_columns:
-                if column.name not in table.columns:
-                    # Add missing column
-                    add_column(conn, table_name, column)
-                elif isinstance(column.type, String) and not isinstance(table.columns[column.name].type, String):
-                    # Alter column type to String for specific columns
-                    alter_column_type(conn, table_name, column.name, column.type)
+        for name, dtype in result_df.dtypes.items():
+            sql_type = dtype_map[str(dtype)]
+            if name not in existing_columns:
+                # Add missing column
+                add_column(engine, table_name, name, sql_type)
+            elif name in ['Vehicle', 'LPN/Tag number'] and existing_columns[name] != String:
+                # Alter column type to String for specific columns
+                alter_column_type(engine, table_name, name, 'VARCHAR')
     else:
         # Create new table with all desired columns
+        desired_columns = [Column(name, String if name in ['Vehicle', 'LPN/Tag number'] else dtype_map[str(dtype)]) for name, dtype in result_df.dtypes.items()]
         table = Table(table_name, metadata, *desired_columns)
-        table.create(bind=engine) 
+        table.create(bind=engine)
         
         
 # Usage in your application would not change other than ensuring the DataFrame is passed
