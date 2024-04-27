@@ -748,12 +748,12 @@ def search():
             print(f'Printing search records: {raw_records}')
             raw_records_dicts = [
                 {
-                    'start_date': record.start_date.strftime('%Y-%m-%d %H:%M:%S') if record.start_date else '',
-                    'details': record.details,
-                    'lpn_tag_number': record.lpn_tag_number,
-                    'vehicle_class': record.vehicle_class,
-                    'trip_cost': f"${(record.trip_cost)}",
-                    'rego': record.rego
+                    'Toll Time': record.start_date.strftime('%Y-%m-%d %H:%M:%S') if record.start_date else '',
+                    'Details': record.details,
+                    'Tag Number': record.lpn_tag_number,
+                    'Vehicle Class': record.vehicle_class,
+                    'Trip Cost': f"${record.trip_cost}",
+                    'Rego': record.rego
                 }
                 for record in raw_records
             ]
