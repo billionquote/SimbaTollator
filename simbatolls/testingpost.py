@@ -13,6 +13,21 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, column, create_engine, Table, MetaData
 from io import StringIO
 from simbatolls.cleaner import cleaner
+from celery import Celery
+from flask_migrate import Migrate
+#login fixes 
+from flask_login import login_user, LoginManager
+from flask_bcrypt import Bcrypt
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from flask_login import login_required
+from datetime import timedelta
+from rq import Queue
+from simbatolls.worker import conn  # Make sure worker.py is accessible as a module
+
+
+
+
 #from flask import current_app as app
 
 
@@ -21,28 +36,16 @@ app = Flask(__name__, template_folder='templates')
 app.secret_key = 'your_secret_key'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
-
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
 
 @app.route('/')
 def home():
     return render_template('home.html')
 
-#login fixes 
-from flask_login import login_user, LoginManager
-from flask_bcrypt import Bcrypt
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin
-from flask_login import login_required
-
-#adding postgre
-#from dotenv import load_dotenv
-#load_dotenv() 
-
-#updated 22 April
 import os
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
 database_url =os.getenv('DATABASE_URL')
-#database_url="postgres://ktbzjfczfdhzls:894a3004b174c857f5188cc7148b20e9a660ae6b9c70ce8071287bd7700689de@ec2-35-169-9-79.compute-1.amazonaws.com:5432/d2jinffuso3col"
+#database_url="postgres://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr"
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -52,8 +55,23 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-from flask_migrate import Migrate
+#create Celery
+app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
+app.config['CELERY_RESULT_BACKEND'] = os.environ['REDIS_URL']
 
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_RESULT_BACKEND'],
+        broker=app.config['CELERY_BROKER_URL']
+    )
+    celery.conf.update(app.config)
+    return celery
+
+# Initialize Celery
+celery = make_celery(app)
+#intiialize RQ
+q = Queue(connection=conn)
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
 migrate = Migrate(app, db)
 
@@ -160,6 +178,7 @@ def validate_license():
 
 @app.route('/upload', methods=['POST','GET'])
 @login_required
+@celery.task
 def upload_file():
     # Ensure there are files in the request
     if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
@@ -176,27 +195,37 @@ def upload_file():
     rcm_df.columns=rcm_df.iloc[2]
     rcm_df=rcm_df.iloc[3:]
     rcm_df.reset_index(drop=True, inplace=True)
+    
+    rcm_df['RCM_Rego'] = rcm_df.apply(
+                                        lambda row: row['Vehicle'].split(str(row['Pickup']))[0].strip()
+                                        if pd.notna(row['Pickup']) and pd.notna(row['Vehicle']) and str(row['Pickup']) in str(row['Vehicle'])
+                                        else row['Vehicle'],
+                                        axis=1
+                                    )
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
+    #try:
+        #rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
+    #except ValueError:
+         #print('Could not handle formatting rcm file vehicle column file')
     try:
-        rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
+        rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
+        rcm_df = rcm_df.drop_duplicates()
     except ValueError:
-        pass  # Handle the case where conversion to int is not possible
-    rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
-    rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
-    rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
-    rcm_df = rcm_df.drop_duplicates()
+         print('Could not handle formatting rcm date and time file')
     
     # Process Toll File
     tolls_df = pd.read_excel(tolls_file)
     tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-    try:
-        tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(int)
-    except ValueError:
-        pass  # Handle the case where conversion to int is not possible
+    #try:
+        #tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(int)
+    #except ValueError:
+        #print('Could not handle formatting toll file') # Handle the case where conversion to int is not possible
     tolls_df = tolls_df.drop_duplicates()
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(float, errors='ignore')
    
@@ -238,22 +267,30 @@ def upload_file():
     #if db is not None:
         #db.close()
 
-# Load DataFrames from session paths
 def load_dataframes(rcm_df_path, tolls_df_path):
     try:
-        # First, let's check if the file exists and is not empty
+        # Check if RCM file exists and is not empty
         if os.path.exists(rcm_df_path) and os.path.getsize(rcm_df_path) > 0:
             with open(rcm_df_path, 'r') as file:
                 rcm_data = file.read()
-                rcm_df = pd.read_json(StringIO(rcm_data))
+                if rcm_data:
+                    rcm_df = pd.read_json(StringIO(rcm_data))
+                else:
+                    print("RCM file has no data.")
+                    return None, None
         else:
             print("RCM file is empty or missing.")
             return None, None
 
+        # Check if Tolls file exists and is not empty
         if os.path.exists(tolls_df_path) and os.path.getsize(tolls_df_path) > 0:
             with open(tolls_df_path, 'r') as file:
                 tolls_data = file.read()
-                tolls_df = pd.read_json(StringIO(tolls_data))
+                if tolls_data:
+                    tolls_df = pd.read_json(StringIO(tolls_data))
+                else:
+                    print("Tolls file has no data.")
+                    return None, None
         else:
             print("Tolls file is empty or missing.")
             return None, None
@@ -262,6 +299,7 @@ def load_dataframes(rcm_df_path, tolls_df_path):
     except Exception as e:
         print(f"Failed to load dataframes: {e}")
         return None, None
+
 
 def populate_summary_table(df):
     print("Original DataFrame:", df.head())  # Display initial data for debugging
@@ -353,6 +391,7 @@ def create_rawdata_table(result_df):
     # Create table dynamically
     rawdata_table = Table('rawdata', metadata, *columns, extend_existing=True)
     engine = db.engine
+    
     rawdata_table.create(engine, checkfirst=True)
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
@@ -375,16 +414,31 @@ def confirm_upload():
         if rcm_df.empty or tolls_df.empty:
             print("Debug: DataFrames are empty")  # Debug print
             return jsonify({'error': 'DataFrames are empty'}), 400
-
+        
+        rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
+        tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
         # Using pandasql to perform the join operation
-        query = """
+        query_tag = """
             SELECT DISTINCT * 
             FROM tolls_df
             INNER JOIN rcm_df 
             ON tolls_df.[LPN/Tag number] = rcm_df.[Vehicle]
             WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
         """
-        result_df = ps.sqldf(query, locals())
+        result_tag = ps.sqldf(query_tag, locals())
+        
+        query_rego = """
+            SELECT DISTINCT * 
+            FROM tolls_df
+            INNER JOIN rcm_df 
+            ON tolls_df.Rego= rcm_df.RCM_Rego
+            WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+        """
+        result_rego = ps.sqldf(query_rego, locals())
+        
+        combined_columns = list(set(result_tag.columns).union(set(result_rego.columns)))
+        # Combine the results from both joins using concat instead of append
+        result_df = pd.concat([result_tag, result_rego], ignore_index=True).drop_duplicates()
         result_df.drop_duplicates(inplace=True)
 
         if result_df.empty:

@@ -22,6 +22,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from flask_login import login_required
 from datetime import timedelta
+from rq import Queue
+from simbatolls.worker import conn  # Make sure worker.py is accessible as a module
+
 
 #from flask import current_app as app
 
@@ -51,21 +54,22 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 #create Celery
-app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
-app.config['CELERY_RESULT_BACKEND'] = os.environ['REDIS_URL']
+#app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
+#app.config['CELERY_RESULT_BACKEND'] = os.environ['REDIS_URL']
 
-def make_celery(app):
-    celery = Celery(
-        app.import_name,
-        backend=app.config['CELERY_RESULT_BACKEND'],
-        broker=app.config['CELERY_BROKER_URL']
-    )
-    celery.conf.update(app.config)
-    return celery
+#def make_celery(app):
+    #celery = Celery(
+        #app.import_name,
+        #backend=app.config['CELERY_RESULT_BACKEND'],
+        #broker=app.config['CELERY_BROKER_URL']
+    #)
+    #celery.conf.update(app.config)
+    #return celery
 
 # Initialize Celery
-celery = make_celery(app)
-
+#celery = make_celery(app)
+#intiialize RQ
+q = Queue(connection=conn)
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
 migrate = Migrate(app, db)
 
@@ -172,7 +176,6 @@ def validate_license():
 
 @app.route('/upload', methods=['POST','GET'])
 @login_required
-@celery.task
 def upload_file():
     # Ensure there are files in the request
     if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
@@ -389,73 +392,78 @@ def create_rawdata_table(result_df):
     rawdata_table.create(engine, checkfirst=True)
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
+def confirm_upload_task(rcm_df_path, tolls_df_path):
+    print(f"Debug: rcm_df_path = {rcm_df_path}, tolls_df_path = {tolls_df_path}")
+    rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
+    
+    if rcm_df.empty or tolls_df.empty:
+        print("Debug: DataFrames are empty")
+        return {'error': 'DataFrames are empty'}, 400
+    
+    rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
+    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
+
+    # SQL queries remain the same
+    query_tag = """
+        SELECT DISTINCT * 
+        FROM tolls_df
+        INNER JOIN rcm_df 
+        ON tolls_df.[LPN/Tag number] = rcm_df.[Vehicle]
+        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    """
+    result_tag = ps.sqldf(query_tag, locals())
+
+    query_rego = """
+        SELECT DISTINCT * 
+        FROM tolls_df
+        INNER JOIN rcm_df 
+        ON tolls_df.Rego= rcm_df.RCM_Rego
+        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    """
+    result_rego = ps.sqldf(query_rego, locals())
+    
+    result_df = pd.concat([result_tag, result_rego], ignore_index=True).drop_duplicates()
+    result_df.drop_duplicates(inplace=True)
+
+    if result_df.empty:
+        print("Debug: Resultant DataFrame is empty")
+        return {'error': 'Processed data is empty'}, 400
+
+    try:
+        engine = db.engine
+        with engine.connect() as conn:
+            create_rawdata_table(result_df)
+            result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
+            summary, grand_total, admin_fee_total = populate_summary_table(result_df)
+            update_or_insert_summary(summary)
+    except Exception as e:
+        print(f"Debug: Exception in database operations - {e}")
+        return {'error': 'Database operation failed', 'details': str(e)}, 500
+
+    return {'message': 'Upload and processing successful'}, 200
+
 
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
-@celery.task
 def confirm_upload():
-    with app.app_context():
-        rcm_df_path = session.get('rcm_df_path')
-        tolls_df_path = session.get('tolls_df_path')
+    rcm_df_path = session.get('rcm_df_path')
+    tolls_df_path = session.get('tolls_df_path')
+    if rcm_df_path is None or tolls_df_path is None:
+        return jsonify({'error': 'Session expired or data not found'}), 400
 
-        print(f"Debug: rcm_df_path = {rcm_df_path}, tolls_df_path = {tolls_df_path}")  # Debug print
+    job = q.enqueue(confirm_upload_task, rcm_df_path, tolls_df_path)
+    return jsonify({'job_id': job.get_id(), 'message': 'Task queued, processing...'}), 202
 
-        if rcm_df_path is None or tolls_df_path is None:
-            return jsonify({'error': 'Session expired or data not found'}), 400
+@app.route('/job-status/<job_id>')
+def job_status(job_id):
+    job = q.fetch_job(job_id)
+    if job.is_finished:
+        return jsonify({'status': 'finished'}), 200
+    elif job.is_failed:
+        return jsonify({'status': 'failed', 'message': str(job.exc_info)}), 500
+    else:
+        return jsonify({'status': 'pending'}), 202
 
-        # Load DataFrames from stored paths
-        rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
-        
-        if rcm_df.empty or tolls_df.empty:
-            print("Debug: DataFrames are empty")  # Debug print
-            return jsonify({'error': 'DataFrames are empty'}), 400
-        
-        rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
-        tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
-        # Using pandasql to perform the join operation
-        query_tag = """
-            SELECT DISTINCT * 
-            FROM tolls_df
-            INNER JOIN rcm_df 
-            ON tolls_df.[LPN/Tag number] = rcm_df.[Vehicle]
-            WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
-        """
-        result_tag = ps.sqldf(query_tag, locals())
-        
-        query_rego = """
-            SELECT DISTINCT * 
-            FROM tolls_df
-            INNER JOIN rcm_df 
-            ON tolls_df.Rego= rcm_df.RCM_Rego
-            WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
-        """
-        result_rego = ps.sqldf(query_rego, locals())
-        
-        combined_columns = list(set(result_tag.columns).union(set(result_rego.columns)))
-        # Combine the results from both joins using concat instead of append
-        result_df = pd.concat([result_tag, result_rego], ignore_index=True).drop_duplicates()
-        result_df.drop_duplicates(inplace=True)
-
-        if result_df.empty:
-            print("Debug: Resultant DataFrame is empty after query and drop duplicates")  # Debug print
-            return jsonify({'error': 'Processed data is empty'}), 400
-
-        try:
-            engine = db.engine
-            with engine.connect() as conn:
-                create_rawdata_table(result_df)  # Ensure this function has error handling
-                result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
-
-                summary, grand_total, admin_fee_total = populate_summary_table(result_df)
-                update_or_insert_summary(summary)
-        except Exception as e:
-            print(f"Debug: Exception in database operations - {e}")  # Debug print
-            return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
-        finally:
-            session.pop('rcm_df_path', None)
-            session.pop('tolls_df_path', None)
-
-        return redirect(url_for('summary'))
 
 def update_or_insert_summary(summary):
     try:
