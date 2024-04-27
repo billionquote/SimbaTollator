@@ -376,7 +376,9 @@ def create_rawdata_table(result_df):
     rawdata_table = Table('rawdata', metadata, *columns, extend_existing=True)
     engine = db.engine
     
-    rawdata_table.create(engine, checkfirst=True)
+    # Use the app context if this is outside of a regular request/response cycle
+    with app.app_context():
+        metadata.create_all(engine)  # This will checkfirst by default
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
 def confirm_upload_task(rcm_data_json, tolls_data_json):
