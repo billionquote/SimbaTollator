@@ -365,22 +365,48 @@ def add_column(engine, table_name, column_name, column_type):
 def create_or_update_table(engine, result_df):
     metadata = MetaData()
     table_name = 'rawdata'
+    metadata.reflect(engine)
+    table = metadata.tables.get(table_name)
 
-    # Desired data types explicitly set
+    if not table:
+        new_columns = [Column(name, column_type) for name, column_type in column_types.items()]
+        table = Table(table_name, metadata, *new_columns)
+        table.create(engine)
+    else:
+        with engine.connect() as conn:
+            for name, column_type in column_types.items():
+                if name not in table.c:
+                    add_column(conn, table_name, name, str(column_type))
+                elif type(table.c[name].type) is not column_type:
+                    alter_column_type(conn, table_name, name, str(column_type))
+
+    # Perform batch insertion
+    batch_size = 100
+    with engine.connect() as conn:
+        for start in range(0, len(result_df), batch_size):
+            end = start + batch_size
+            batch = result_df.iloc[start:end]
+            conn.execute(table.insert(), batch.to_dict(orient='records'))
+
+def create_or_update_table(engine, result_df):
+    metadata = MetaData()
+    table_name = 'rawdata'
+
+    # Explicitly set desired data types
     column_types = {
         'id': Integer,
         'Start Date': DateTime,
         'Details': String,
         'LPN/Tag number': String,
         'Vehicle Class': Integer,
-        'Trip Cost': Float,
+        'Trip Cost': String,
         'Fleet ID': String,
         'End Date': DateTime,
         'Date': DateTime,
         'Rego': String,
         '#': Integer,
-        'Res.': Float,
-        'Ref.': Float,
+        'Res.': String,
+        'Ref.': String,
         'Update': String,
         'Notes': String,
         'Status': String,
@@ -418,8 +444,10 @@ def create_or_update_table(engine, result_df):
         with engine.connect() as conn:
             for name, column_type in column_types.items():
                 if name not in table.c:
+                    print(f'I JUST ADDED NEW A COLUMN!!!!! {name}')
                     add_column(conn, table_name, name, column_type)
                 elif not isinstance(table.c[name].type, column_type):
+                    print(f'I JUST CHANGE COLUMN TYPE {column_type} for column: {name}')
                     alter_column_type(conn, table_name, name, column_type)
 
     # Perform batch insertion
@@ -429,75 +457,8 @@ def create_or_update_table(engine, result_df):
             print(f'we are in batch {start} of {len(result_df)} rows we are writing')
             end = start + batch_size
             batch = result_df.iloc[start:end]
-            conn.execute(table.insert(), batch.to_dict(orient='records'))
-        
-        
-# Usage in your application would not change other than ensuring the DataFrame is passed
-def confirm_upload_task(rcm_data_json, tolls_data_json):
-    try: 
-        rcm_df = pd.read_json(StringIO(rcm_data_json))
-        tolls_df = pd.read_json(StringIO(tolls_data_json))
-        print(f'RCM_DF FROM CONFIRM UPLOAD: {rcm_df.head(3)}')
-        print(f'tolls_DF FROM CONFIRM UPLOAD: {tolls_df.head(3)}')
-    except ValueError as e:
-        print("Error parsing JSON data: We are in Confirm_upload_task", e)
-        return {'error': 'Invalid JSON data', 'details': str(e)}, 500
-        
-    if rcm_df.empty or tolls_df.empty:
-        print("Debug: DataFrames are empty")
-        return {'error': 'DataFrames are empty'}, 400
-    
-    rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
-    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
-    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
+            conn.execute(table.insert(), batch.to_dict(orient='records')) 
 
-    # SQL queries remain the same
-    query_tag = """
-        SELECT DISTINCT * 
-        FROM tolls_df
-        INNER JOIN rcm_df 
-        ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[Vehicle] as VARCHAR)
-        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
-    """
-    print(f'MY OUTPUT TO CHECK RCM DATA_RCMMMM: {rcm_df[['Vehicle', 'Pickup Date Time', 'Dropoff Date Time']].head(5)}')
-    print(f'MY OUTPUT TO CHECK TOOOOOLLLLL DATA: {tolls_df[['LPN/Tag number', 'Start Date']].head(5)}')
-  
-
-    result_tag = ps.sqldf(query_tag, locals())
-
-    query_rego = """
-        SELECT DISTINCT * 
-        FROM tolls_df
-        INNER JOIN rcm_df 
-        ON tolls_df.Rego= rcm_df.RCM_Rego
-        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
-    """
-    result_rego = ps.sqldf(query_rego, locals())
-    print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
-    print(f'result Rego_____: {result_rego.head(5)}') 
-    if result_rego.empty:
-        result_df=result_tag
-    else:
-        result_df = pd.concat([result_tag, result_rego], ignore_index=True)
-    print(f'result df_____ HERE: {result_df.head(5)}')
-    result_df.drop_duplicates(inplace=True)
-
-    if result_df.empty:
-        print("Debug: Resultant DataFrame is empty")
-        return {'error': 'Processed data is empty'}, 400
-    with app.app_context(): 
-        try:
-            engine = db.engine
-            with engine.connect() as conn:
-                create_or_update_table(engine,result_df)
-                #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
-                summary, grand_total, admin_fee_total = populate_summary_table(result_df)
-                update_or_insert_summary(summary)
-        except Exception as e:
-            print(f"Debug: Exception in database operations - {e}")
-            return {'error': 'Database operation failed', 'details': str(e)}, 500
-
-        return {'message': 'Upload and processing successful'}, 200
 
 
 @app.route('/confirm-upload', methods=['POST'])
