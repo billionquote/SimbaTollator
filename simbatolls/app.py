@@ -401,13 +401,12 @@ def add_column(engine, table_name, column_name, column_type):
 def create_or_update_table(engine, result_df):
     metadata = MetaData()
     table_name = 'rawdata'
-    print(f'METADATA FROM CREAT TABLE FUNCTION {metadata}')
+
     # Reflect the existing database schema
     metadata.reflect(bind=engine)
     inspector = inspect(engine)
     existing_columns = {col['name']: col['type'] for col in inspector.get_columns(table_name)} if inspector.has_table(table_name) else {}
-    print(f'These are my existing columns in create_or_update: {existing_columns}')
-    # Mapping of DataFrame dtypes to SQLAlchemy types
+    print(f'I AM NOW PRINTING EXISTING COLUMNS FROM CREATE_OR UPDATE: {existing_columns}')
     dtype_map = {
         'int64': Integer,
         'float64': Float,
@@ -415,21 +414,25 @@ def create_or_update_table(engine, result_df):
     }
 
     if table_name in metadata.tables:
-        # Table exists, update schema if necessary
         table = metadata.tables[table_name]
         for name, dtype in result_df.dtypes.items():
             sql_type = dtype_map[str(dtype)]
             if name not in existing_columns:
-                # Add missing column
                 add_column(engine, table_name, name, sql_type)
-            elif name in ['Vehicle', 'LPN/Tag number'] and existing_columns[name] != String:
-                # Alter column type to String for specific columns
+            elif name in ['Vehicle', 'LPN/Tag number'] and not isinstance(existing_columns[name], String):
                 alter_column_type(engine, table_name, name, 'VARCHAR')
     else:
-        # Create new table with all desired columns
         desired_columns = [Column(name, String if name in ['Vehicle', 'LPN/Tag number'] else dtype_map[str(dtype)]) for name, dtype in result_df.dtypes.items()]
         table = Table(table_name, metadata, *desired_columns)
         table.create(bind=engine)
+
+    # Perform batch insertion
+    batch_size = 100  # You can adjust the batch size based on your server capacity
+    with engine.connect() as conn:
+        for start in range(0, len(result_df), batch_size):
+            end = start + batch_size
+            batch = result_df.iloc[start:end].to_dict(orient='records')
+            conn.execute(table.insert(), batch)
         
         
 # Usage in your application would not change other than ensuring the DataFrame is passed
@@ -437,7 +440,8 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
     try: 
         rcm_df = pd.read_json(StringIO(rcm_data_json))
         tolls_df = pd.read_json(StringIO(tolls_data_json))
-    
+        print(f'RCM_DF FROM CONFIRM UPLOAD: {rcm_df.head(3)}')
+        print(f'tolls_DF FROM CONFIRM UPLOAD: {tolls_df.head(3)}')
     except ValueError as e:
         print("Error parsing JSON data: We are in Confirm_upload_task", e)
         return {'error': 'Invalid JSON data', 'details': str(e)}, 500
@@ -469,7 +473,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
     result_rego = ps.sqldf(query_rego, locals())
     print(f'result tag: {result_tag.head(5)}') 
     print(f'result tag: {result_rego.head(5)}') 
-    result_df = pd.concat([result_tag, result_rego], ignore_index=True).drop_duplicates()
+    result_df = pd.concat([result_tag, result_rego], ignore_index=True)
     print(f'result df_____ HERE: {result_df.head(5)}')
     result_df.drop_duplicates(inplace=True)
 
@@ -481,7 +485,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
             engine = db.engine
             with engine.connect() as conn:
                 create_or_update_table(engine,result_df)
-                result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
+                #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
         except Exception as e:
