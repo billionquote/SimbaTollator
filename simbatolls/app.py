@@ -366,7 +366,7 @@ def convert_df_types(df):
 
     # Ensure all other fields are treated as strings or their specific type
     string_fields = ['Details', 'LPN/Tag number', 'Vehicle Class', 'Trip Cost',
-                     'Fleet ID', 'Date', 'Rego', 'Res.', 'Ref', 'Update', 'Notes',
+                     'Fleet ID', 'Date', 'Rego', 'Res.', 'Ref.', 'Update', 'Notes',
                      'Status', 'Dropoff', 'Day', 'Dropoff Date', 'Time', 'Pickup',
                      'Pickup Date', 'Time_c13', 'Category', 'Vehicle', 'Colour',
                      'Items', 'Insurance', 'Departure', 'Next Rental', 'RCM_Rego']
