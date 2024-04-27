@@ -384,8 +384,17 @@ def alter_column_type(engine, table_name, column_name, new_type):
         conn.execute(text(alter_stmt))
 
 def add_column(engine, table_name, column_name, column_type):
-    # Adds a new column to an existing table
-    add_stmt = f'ALTER TABLE {table_name} ADD COLUMN "{column_name}" {column_type}'
+    # Determine SQL type string from SQLAlchemy type
+    type_map = {
+        String: 'VARCHAR',
+        Integer: 'INTEGER',
+        Float: 'FLOAT'
+    }
+    
+    sql_type = type_map.get(column_type, 'VARCHAR')  # Default to VARCHAR if type unknown
+    
+    # Adds a new column to an existing table with the correct SQL type string
+    add_stmt = f'ALTER TABLE {table_name} ADD COLUMN "{column_name}" {sql_type}'
     with engine.connect() as conn:
         conn.execute(text(add_stmt))
 
