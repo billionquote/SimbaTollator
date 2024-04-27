@@ -558,6 +558,7 @@ def confirm_upload():
         return jsonify({'status': 'in progress'}), 202
 
 
+
 @app.route('/job-status/<job_id>')
 def job_status(job_id):
     job = q.fetch_job(job_id)
@@ -742,7 +743,7 @@ def search():
             session.close()
 
         # Pass the converted records to your template
-        return render_template('search_results.html', summary_record=summary_record, raw_records=raw_records, search_query=search_query, last_5_contracts=last_5_contracts)
+        return render_template('search_results.html', summary_record=summary_record, raw_records=raw_records_dicts, search_query=search_query, last_5_contracts=last_5_contracts)
 
     else:
         # Initial page load, no search performed

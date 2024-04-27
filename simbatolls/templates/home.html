@@ -224,19 +224,20 @@ function validateLicense() {
 }
 
         function confirmUpload() {
-                    $.ajax({
-                        url: '/confirm-upload',
-                        type: 'POST',
-                        success: function(response) {
-                            alert('Data confirmed and saved to database.');
-                            // Redirect to the summary page
-                            window.location.href = '/summary';
-                        },
-                        error: function() {
-                            alert('Error confirming upload.');
-                        }
-                    });
+            var jobId = 'your_job_id_here';  // Ensure this is the correct job ID obtained from your context or previous interaction
+            $.ajax({
+                url: '/confirm-upload?job_id=' + jobId,
+                type: 'POST',
+                success: function(response) {
+                    alert('Data confirmed and saved to database.');
+                    window.location.href = '/summary';
+                },
+                error: function() {
+                    alert('Error confirming upload.');
                 }
+            });
+        }
+
 
 
         function togglePasswordVisibility() {
