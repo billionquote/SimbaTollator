@@ -546,19 +546,20 @@ def confirm_upload():
         return jsonify({'error': 'No job ID provided'}), 400
 
     job = q.fetch_job(job_id)
-    if not job:
-        return jsonify({'error': 'Job not found'}), 404
+    if job is None:
+        return jsonify({'error': 'Job not found or expired'}), 404
 
-    if job.is_finished:
-        if job.result and 'error' in job.result:
-            return jsonify({'status': 'failed', 'message': job.result}), 500
-        return jsonify({'status': 'completed', 'result': job.result}), 200
-    elif job.is_failed:
-        return jsonify({'status': 'failed', 'message': str(job.exc_info)}), 500
-    else:
-        return jsonify({'status': 'in progress'}), 202
-
-
+    try:
+        if job.is_finished:
+            if job.result and 'error' in job.result:
+                return jsonify({'status': 'failed', 'message': job.result}), 500
+            return jsonify({'status': 'completed', 'result': job.result}), 200
+        elif job.is_failed:
+            return jsonify({'status': 'failed', 'message': str(job.exc_info)}), 500
+        else:
+            return jsonify({'status': 'in progress'}), 202
+    except Exception as e:
+        return jsonify({'error': 'Failed to retrieve job status', 'details': str(e)}), 500
 
 @app.route('/job-status/<job_id>')
 def job_status(job_id):
@@ -727,7 +728,11 @@ def search():
 
             # Fetch raw records for the contract using literal text for proper SQL execution
              # Fetch raw records for the contract using ORM
+            #we need to do str conversion as res are stored in different ways in RawData and Summary (in summary it is int and in RawData it is str)
+            search_query = str(search_query)
             raw_records = RawData.query.filter(RawData.res == search_query).all()
+            print(f'Printing search Query: {search_query}')
+            print(f'Printing search Query: {raw_records}')
             raw_records_dicts = [
                 {
                     'start_date': record.start_date.strftime('%Y-%m-%d %H:%M:%S') if record.start_date else '',
