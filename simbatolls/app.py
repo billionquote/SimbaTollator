@@ -403,15 +403,22 @@ def create_or_update_table(engine, result_df):
     table_name = 'rawdata'
 
     # Reflect the existing database schema
-    metadata.reflect(bind=engine)
+    metadata.reflect(engine)
     inspector = inspect(engine)
     existing_columns = {col['name']: col['type'] for col in inspector.get_columns(table_name)} if inspector.has_table(table_name) else {}
-    print(f'I AM NOW PRINTING EXISTING COLUMNS FROM CREATE_OR UPDATE: {existing_columns}')
+    print(f' WE ARE INSIDE CREATE_UPDATE_FORMULA: EXSISTING COLUMNS{existing_columns}')
     dtype_map = {
         'int64': Integer,
         'float64': Float,
         'object': String
     }
+
+    # Ensure the DataFrame matches expected SQL types
+    for col in result_df.columns:
+        expected_type = dtype_map[str(result_df[col].dtype)]
+        if col in existing_columns and not isinstance(existing_columns[col], expected_type):
+            print(f'COLUMN: {col} has expected type of {expected_type}')
+            result_df[col] = result_df[col].astype(str) if expected_type is String else result_df[col].astype(float)
 
     if table_name in metadata.tables:
         table = metadata.tables[table_name]
@@ -424,15 +431,16 @@ def create_or_update_table(engine, result_df):
     else:
         desired_columns = [Column(name, String if name in ['Vehicle', 'LPN/Tag number'] else dtype_map[str(dtype)]) for name, dtype in result_df.dtypes.items()]
         table = Table(table_name, metadata, *desired_columns)
-        table.create(bind=engine)
+        table.create(engine)
 
     # Perform batch insertion
-    batch_size = 100  # You can adjust the batch size based on your server capacity
+    batch_size = 100  # Adjust batch size based on your server's capacity
     with engine.connect() as conn:
         for start in range(0, len(result_df), batch_size):
             end = start + batch_size
             batch = result_df.iloc[start:end].to_dict(orient='records')
             conn.execute(table.insert(), batch)
+
         
         
 # Usage in your application would not change other than ensuring the DataFrame is passed
