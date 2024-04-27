@@ -235,6 +235,8 @@ def upload_file():
     rcm_temp_file = tempfile.NamedTemporaryFile(delete=False)
     tolls_temp_file = tempfile.NamedTemporaryFile(delete=False)
 
+    job = q.enqueue(confirm_upload_task, rcm_df.to_json(), tolls_df.to_json())
+
     rcm_df.to_json(rcm_temp_file.name)
     tolls_df.to_json(tolls_temp_file.name)
 
@@ -246,7 +248,7 @@ def upload_file():
     rcm_temp_file.close()
     tolls_temp_file.close()
 
-    return jsonify({'rcmPreview': rcm_html, 'tollsPreview': tolls_html})
+    return jsonify({'rcmPreview': rcm_html, 'tollsPreview': tolls_html, 'message': 'Files are being processed', 'job_id': job.get_id()}), 202
 
 #data base management 
 
@@ -392,9 +394,9 @@ def create_rawdata_table(result_df):
     rawdata_table.create(engine, checkfirst=True)
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
-def confirm_upload_task(rcm_df_path, tolls_df_path):
-    print(f"Debug: rcm_df_path = {rcm_df_path}, tolls_df_path = {tolls_df_path}")
-    rcm_df, tolls_df = load_dataframes(rcm_df_path, tolls_df_path)
+def confirm_upload_task(rcm_data_json, tolls_data_json):
+    rcm_df = pd.read_json(rcm_data_json)
+    tolls_df = pd.read_json(tolls_data_json)
     
     if rcm_df.empty or tolls_df.empty:
         print("Debug: DataFrames are empty")
