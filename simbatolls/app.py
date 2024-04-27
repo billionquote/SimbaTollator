@@ -299,7 +299,7 @@ def populate_summary_table(df):
     df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
     df = df[df['Res.'].notnull()]
     df = df.drop_duplicates()
-
+    df['Trip Cost'] = df['Trip Cost'].astype(float)
     # Debug output to see DataFrame before aggregation
     print("DataFrame before aggregation:", df.head())
 
@@ -326,9 +326,9 @@ def populate_summary_table(df):
     
     summary['Sum_of_Toll_Cost'] = summary['Sum_of_Toll_Cost'].round(2)
     summary['Total Toll Contract cost'] = summary['Total Toll Contract cost'].round(2)
-    summary['admin_fee'] = '$' + summary['admin_fee'].astype(float).round(2).map('{:,.2f}'.format)
-    summary['Sum of Toll Cost'] = '$' + summary['Sum_of_Toll_Cost'].astype(float).map('{:,.2f}'.format)
-    summary['Total Toll Contract cost'] = '$' + summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
+    summary['admin_fee'] = summary['admin_fee'].astype(float).round(2).map('{:,.2f}'.format)
+    summary['Sum of Toll Cost'] = summary['Sum_of_Toll_Cost'].astype(float).map('{:,.2f}'.format)
+    summary['Total Toll Contract cost'] =  summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
 
     summary = summary.rename(columns={
         'Res.': 'Contract Number'
@@ -719,30 +719,19 @@ def search():
             summary_record = [{column.name: getattr(row, column.name) for column in Summary.__table__.columns} for row in summary_result.scalars().all()]
 
             # Fetch raw records for the contract using literal text for proper SQL execution
-            raw_query = text("""
-                SELECT distinct "Start Date" AS start_date, "Details" AS details,
-                       "LPN/Tag number" AS lpn_tag_number, "Vehicle Class" AS vehicle_class,
-                       "Trip Cost" AS trip_cost, "Rego" AS rego
-                FROM rawdata
-                WHERE "Res." = :res_value
-            """)
-            raw_result = session.execute(raw_query, {'res_value': search_query}).fetchall()
-
-            # Extract the data into a list of dictionaries
-            
-            # Convert each RowProxy to a dictionary manually
-
-            raw_records = []
-            for row in raw_result:
-                record = {
-                    'Start Date': row[0],  # Assuming 'Start Date' is the first column
-                    'Details': row[1],     # Assuming 'Details' is the second column
-                    'LPN/Tag number': row[2],  # and so forth
-                    'Vehicle Class': row[3],
-                    'Trip Cost': f"${float(row[4]):,.2f}",  # Assuming 'Trip Cost' is the fifth column
-                    'Rego': row[5]         # Assuming 'Rego' is the sixth column
+             # Fetch raw records for the contract using ORM
+            raw_records = RawData.query.filter(RawData.res == search_query).all()
+            raw_records_dicts = [
+                {
+                    'start_date': record.start_date.strftime('%Y-%m-%d %H:%M:%S') if record.start_date else '',
+                    'details': record.details,
+                    'lpn_tag_number': record.lpn_tag_number,
+                    'vehicle_class': record.vehicle_class,
+                    'trip_cost': f"${float(record.trip_cost):,.2f}",
+                    'rego': record.rego
                 }
-                raw_records.append(record)
+                for record in raw_records
+            ]
             #print(raw_records)
         finally:
             session.close()
