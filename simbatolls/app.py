@@ -342,31 +342,36 @@ def determine_column_type(dtype):
         return String()  # Default to String for unexpected data types
 
 def alter_column_type(engine, table_name, column_name, new_type):
-    # Generate and execute SQL to alter the column type
-    alter_stmt = f'ALTER TABLE {table_name} ALTER COLUMN "{column_name}" TYPE VARCHAR USING "{column_name}"::VARCHAR'
-    with engine.connect() as conn:
-        conn.execute(text(alter_stmt))
+    alter_stmt = f'ALTER TABLE {table_name} ALTER COLUMN "{column_name}" TYPE {new_type} USING "{column_name}"::{new_type}'
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(alter_stmt))
+        print(f"Column {column_name} in {table_name} altered to {new_type}.")
+    except Exception as e:
+        print(f"Failed to alter column type: {e}")
+        raise  # Re-raise the exception after logging
 
 def add_column(engine, table_name, column_name, column_type):
-    # Determine SQL type string from SQLAlchemy type
-    type_map = {
+    sql_type = {
         String: 'VARCHAR',
         Integer: 'INTEGER',
         Float: 'FLOAT'
-    }
+    }.get(column_type, 'VARCHAR')
     
-    sql_type = type_map.get(column_type, 'VARCHAR')  # Default to VARCHAR if type unknown
-    
-    # Adds a new column to an existing table with the correct SQL type string
     add_stmt = f'ALTER TABLE {table_name} ADD COLUMN "{column_name}" {sql_type}'
-    with engine.connect() as conn:
-        conn.execute(text(add_stmt))
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(add_stmt))
+        print(f"Added column {column_name} of type {sql_type} to {table_name}.")
+    except Exception as e:
+        print(f"Failed to add column: {e}")
+        raise  # Re-raise the exception after logging
 
 def create_or_update_table(engine, result_df):
     metadata = MetaData()
     table_name = 'rawdata'
-
-    # Explicitly set desired data types
+    metadata.reflect(engine, only=[table_name])
+    table = metadata.tables.get(table_name)
     column_types = {
         'id': Integer,
         'Start Date': DateTime,
@@ -403,39 +408,32 @@ def create_or_update_table(engine, result_df):
         'Dropoff Date Time': DateTime,
         'RCM_Rego': String  # Assuming you want to add this as a new column
     }
-
-    # Reflect the existing database schema
-    metadata.reflect(engine)
-    table = metadata.tables.get(table_name)
-
     if not table:
-        # Create new table if it does not exist
-        new_columns = [Column(name, column_type) for name, column_type in column_types.items()]
+        new_columns = [Column(name, dtype) for name, dtype in column_types.items()]
         table = Table(table_name, metadata, *new_columns)
         table.create(engine)
     else:
-        # Update existing table, adjust column types or add new columns as necessary
         with engine.connect() as conn:
-            for name, column_type in column_types.items():
+            for name, dtype in column_types.items():
                 if name not in table.c:
-                    print('WE ARE ADDING COLUMNS')
-                    add_column(conn, table_name, name, column_type)
-                elif not isinstance(table.c[name].type, column_type):
-                    print('WE CHANGED COLUMN TYPES')
-                    alter_column_type(conn, table_name, name, column_type)
-                    
-
-    # Perform batch insertion
-    batch_size = 100  # Adjust the batch size based on your server capacity or performance needs
+                    add_column(engine, table_name, name, dtype)
+                elif not isinstance(table.c[name].type, dtype):
+                    actual_type = str(table.c[name].type).split('(')[0]  # Get only the type name
+                    desired_type = str(dtype).split('(')[0]  # Convert SQLAlchemy type to string
+                    if actual_type != desired_type:
+                        alter_column_type(engine, table_name, name, desired_type)
+    batch_size=250
     with engine.connect() as conn:
         for start in range(0, len(result_df), batch_size):
-            print(f'we are in batch {start} of {len(result_df)} rows we are writing')
-            end = start + batch_size
-            batch = result_df.iloc[start:end]
-            conn.execute(table.insert(), batch.to_dict(orient='records')) 
+            batch = result_df.iloc[start:start + batch_size]
+            try:
+                conn.execute(table.insert(), batch.to_dict(orient='records'))
+                print(f"Batch from {start} to {start + batch_size} inserted successfully.")
+            except Exception as e:
+                print(f"Failed to insert batch starting at {start}: {e}")
+                raise
 
 
-        
 # Usage in your application would not change other than ensuring the DataFrame is passed
 def confirm_upload_task(rcm_data_json, tolls_data_json):
     try: 
