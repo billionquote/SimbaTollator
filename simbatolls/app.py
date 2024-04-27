@@ -40,11 +40,11 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
 @app.route('/')
 def home():
     return render_template('home.html')
-
+#use ful comand for flask upgrade poetry run python -m flask db init 
 import os
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-database_url =os.getenv('DATABASE_URL')
-#database_url="postgres://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr"
+#database_url =os.getenv('DATABASE_URL')
+database_url="postgres://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr"
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -113,11 +113,11 @@ class RawData(db.Model):
     start_date = db.Column(db.DateTime)
     details = db.Column(db.String)
     lpn_tag_number = db.Column(db.String)
-    vehicle_class = db.Column(db.Integer)
+    vehicle_class = db.Column(db.String)
     trip_cost = db.Column(db.String)
     fleet_id = db.Column(db.String)
     end_date = db.Column(db.DateTime)
-    date = db.Column(db.DateTime)
+    date = db.Column(db.String)
     rego = db.Column(db.String)
     res = db.Column(db.String)
     ref = db.Column(db.String)
@@ -229,6 +229,7 @@ def upload_file():
         #print('Could not handle formatting toll file') # Handle the case where conversion to int is not possible
     tolls_df = tolls_df.drop_duplicates()
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(float, errors='ignore')
+    tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
     tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
     # Convert the first 3 rows of each DataFrame to HTML
     rcm_html = rcm_df.head(3).to_html()
