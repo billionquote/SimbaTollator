@@ -739,7 +739,7 @@ def search():
                     'details': record.details,
                     'lpn_tag_number': record.lpn_tag_number,
                     'vehicle_class': record.vehicle_class,
-                    'trip_cost': f"${float(record.trip_cost):,.2f}",
+                    #'trip_cost': f"${float(record.trip_cost):,.2f}",
                     'rego': record.rego
                 }
                 for record in raw_records
