@@ -25,6 +25,7 @@ from datetime import timedelta
 from rq import Queue
 from simbatolls.worker import conn  # Make sure worker.py is accessible as a module
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, inspect
+from sqlalchemy.types import Integer, String, Float, DateTime
 from sqlalchemy.dialects.postgresql import NUMERIC  # Use NUMERIC for more precise financial data
 #from flask import current_app as app
 
@@ -90,46 +91,7 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return f"User('{self.username}')" 
-
-class RawData(db.Model):
-    __tablename__ = 'rawdata'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    start_date = db.Column(db.DateTime, nullable=True)  # Assuming dates can be null
-    details = db.Column(db.String(255), nullable=True)
-    lpn_tag_number = db.Column(db.String(100), nullable=True)
-    vehicle_class = db.Column(db.String(50), nullable=True)
-    trip_cost = db.Column(db.Float, nullable=True)
-    fleet_id = db.Column(db.String(50), nullable=True)
-    end_date = db.Column(db.DateTime, nullable=True)
-    date = db.Column(db.Date, nullable=True)
-    rego = db.Column(db.String(50), nullable=True)
-    hash_ = db.Column(db.String(50), nullable=True)  # Using 'hash_' because '#' is not a valid variable name
-    res = db.Column(db.String(50), nullable=True)
-    ref = db.Column(db.String(50), nullable=True)
-    update = db.Column(db.DateTime, nullable=True)  # Assuming 'Update' is a date-time column
-    notes = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(50), nullable=True)
-    dropoff = db.Column(db.String(50), nullable=True)
-    day = db.Column(db.String(50), nullable=True)
-    dropoff_date = db.Column(db.Date, nullable=True)
-    time = db.Column(db.Time, nullable=True)
-    pickup = db.Column(db.String(50), nullable=True)
-    pickup_date = db.Column(db.Date, nullable=True)
-    time_c13 = db.Column(db.Time, nullable=True)
-    days = db.Column(db.Integer, nullable=True)  # Assuming '# Days' is an integer
-    category = db.Column(db.String(50), nullable=True)
-    vehicle = db.Column(db.String(50), nullable=True)
-    colour = db.Column(db.String(50), nullable=True)
-    items = db.Column(db.String(255), nullable=True)
-    insurance = db.Column(db.String(50), nullable=True)
-    departure = db.Column(db.DateTime, nullable=True)
-    next_rental = db.Column(db.DateTime, nullable=True)
-    pickup_date_time = db.Column(db.DateTime, nullable=True)
-    dropoff_date_time = db.Column(db.DateTime, nullable=True)
-    
-    def __repr__(self):
-        return f"User('{self.res}')" 
-    
+  
 class Summary(db.Model):
     __tablename__ = 'summary'
 
@@ -402,45 +364,69 @@ def create_or_update_table(engine, result_df):
     metadata = MetaData()
     table_name = 'rawdata'
 
-    # Reflect the existing database schema
-    metadata.reflect(engine)
-    inspector = inspect(engine)
-    existing_columns = {col['name']: col['type'] for col in inspector.get_columns(table_name)} if inspector.has_table(table_name) else {}
-    print(f' WE ARE INSIDE CREATE_UPDATE_FORMULA: EXSISTING COLUMNS{existing_columns}')
-    dtype_map = {
-        'int64': Integer,
-        'float64': Float,
-        'object': String
+    # Desired data types explicitly set
+    column_types = {
+        'id': Integer,
+        'Start Date': DateTime,
+        'Details': String,
+        'LPN/Tag number': String,
+        'Vehicle Class': Integer,
+        'Trip Cost': Float,
+        'Fleet ID': String,
+        'End Date': DateTime,
+        'Date': DateTime,
+        'Rego': String,
+        '#': Integer,
+        'Res.': Float,
+        'Ref.': Float,
+        'Update': String,
+        'Notes': String,
+        'Status': String,
+        'Dropoff': String,
+        'Day': String,
+        'Dropoff Date': String,
+        'Time': String,
+        'Pickup': String,
+        'Pickup Date': String,
+        'Time_c13': String,
+        '# Days': Integer,
+        'Category': String,
+        'Vehicle': String,
+        'Colour': String,
+        'Items': String,
+        'Insurance': String,
+        'Departure': String,
+        'Next Rental': String,
+        'Pickup Date Time': DateTime,
+        'Dropoff Date Time': DateTime,
+        'RCM_Rego': String  # Assuming you want to add this as a new column
     }
 
-    # Ensure the DataFrame matches expected SQL types
-    for col in result_df.columns:
-        expected_type = dtype_map[str(result_df[col].dtype)]
-        if col in existing_columns and not isinstance(existing_columns[col], expected_type):
-            print(f'COLUMN: {col} has expected type of {expected_type}')
-            result_df[col] = result_df[col].astype(str) if expected_type is String else result_df[col].astype(float)
+    # Reflect the existing database schema
+    metadata.reflect(engine)
+    table = metadata.tables.get(table_name)
 
-    if table_name in metadata.tables:
-        table = metadata.tables[table_name]
-        for name, dtype in result_df.dtypes.items():
-            sql_type = dtype_map[str(dtype)]
-            if name not in existing_columns:
-                add_column(engine, table_name, name, sql_type)
-            elif name in ['Vehicle', 'LPN/Tag number'] and not isinstance(existing_columns[name], String):
-                alter_column_type(engine, table_name, name, 'VARCHAR')
-    else:
-        desired_columns = [Column(name, String if name in ['Vehicle', 'LPN/Tag number'] else dtype_map[str(dtype)]) for name, dtype in result_df.dtypes.items()]
-        table = Table(table_name, metadata, *desired_columns)
+    if not table:
+        # Create new table if it does not exist
+        new_columns = [Column(name, column_type) for name, column_type in column_types.items()]
+        table = Table(table_name, metadata, *new_columns)
         table.create(engine)
+    else:
+        # Update existing table, adjust column types or add new columns as necessary
+        with engine.connect() as conn:
+            for name, column_type in column_types.items():
+                if name not in table.c:
+                    add_column(conn, table_name, name, column_type)
+                elif not isinstance(table.c[name].type, column_type):
+                    alter_column_type(conn, table_name, name, column_type)
 
     # Perform batch insertion
-    batch_size = 100  # Adjust batch size based on your server's capacity
+    batch_size = 100  # Adjust the batch size based on your server capacity or performance needs
     with engine.connect() as conn:
         for start in range(0, len(result_df), batch_size):
             end = start + batch_size
-            batch = result_df.iloc[start:end].to_dict(orient='records')
-            conn.execute(table.insert(), batch)
-
+            batch = result_df.iloc[start:end]
+            conn.execute(table.insert(), batch.to_dict(orient='records'))
         
         
 # Usage in your application would not change other than ensuring the DataFrame is passed
