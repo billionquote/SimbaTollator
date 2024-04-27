@@ -24,8 +24,8 @@ from flask_login import login_required
 from datetime import timedelta
 from rq import Queue
 from simbatolls.worker import conn  # Make sure worker.py is accessible as a module
-
-
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, inspect
+from sqlalchemy.dialects.postgresql import NUMERIC  # Use NUMERIC for more precise financial data
 #from flask import current_app as app
 
 
@@ -352,34 +352,67 @@ def populate_summary_table(df):
     })
     return summary, grand_total, admin_fee_total
 
+def determine_column_type(dtype):
+    if dtype == 'int64':
+        return Integer()
+    elif dtype == 'float64':
+        return Float()
+    elif dtype == 'object':
+        return String()
+    else:
+        return String()  # Default to String for unexpected data types
 
-def create_rawdata_table(result_df):
-    from sqlalchemy import Table, Column, Integer, String, MetaData, Float
-    metadata = MetaData()
+def alter_column_type(engine, table_name, column_name, new_type):
+    # This function will generate and execute SQL to alter the column type
+    alter_stmt = f'ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE VARCHAR USING {column_name}::VARCHAR'
+    with engine.connect() as conn:
+        conn.execute(text(alter_stmt))
 
-    columns = [
-        Column('id', Integer, primary_key=True)
+def add_column(engine, table_name, column_name, column_type):
+    # This function adds a new column to an existing table
+    add_stmt = f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}'
+    with engine.connect() as conn:
+        conn.execute(text(add_stmt))
+
+def create_or_update_table(engine, result_df):
+    metadata = MetaData(bind=engine)
+    table_name = 'rawdata'
+
+    # Reflect existing database schema
+    metadata.reflect(bind=engine)
+    inspector = inspect(engine)
+    existing_columns = inspector.get_columns(table_name) if inspector.has_table(table_name) else []
+
+    # Mapping of DataFrame dtypes to SQLAlchemy types
+    dtype_map = {
+        'int64': Integer,
+        'float64': Float,
+        'object': String
+    }
+
+    # Define desired columns from DataFrame ensuring 'Vehicle' and 'LPN/Tag number' are Strings
+    desired_columns = [
+        Column(name, String if name in ['Vehicle', 'LPN/Tag number'] else dtype_map[str(dtype)])
+        for name, dtype in result_df.dtypes.items()
     ]
-    # Dynamically add columns based on DataFrame dtypes
-    for col_name, dtype in result_df.dtypes.items():  # Changed from iteritems() to items()
-        if dtype == 'int64':
-            col_type = Integer()
-        elif dtype == 'float64':
-            col_type = Float()
-        elif dtype == 'object':
-            col_type = String()
-        else:
-            col_type = String()  # Default type
-        columns.append(Column(col_name, col_type))
-    
-    # Create table dynamically
-    rawdata_table = Table('rawdata', metadata, *columns, extend_existing=True)
-    engine = db.engine
-    
-    # Use the app context if this is outside of a regular request/response cycle
-    with app.app_context():
-        metadata.create_all(engine)  # This will checkfirst by default
 
+    if table_name in metadata.tables:
+        # Table exists, update schema if necessary
+        table = metadata.tables[table_name]
+        with engine.connect() as conn:
+            for column in desired_columns:
+                if column.name not in table.columns:
+                    # Add missing column
+                    add_column(conn, table_name, column)
+                elif isinstance(column.type, String) and not isinstance(table.columns[column.name].type, String):
+                    # Alter column type to String for specific columns
+                    alter_column_type(conn, table_name, column.name, column.type)
+    else:
+        # Create new table with all desired columns
+        table = Table(table_name, metadata, *desired_columns)
+        table.create(bind=engine) 
+        
+        
 # Usage in your application would not change other than ensuring the DataFrame is passed
 def confirm_upload_task(rcm_data_json, tolls_data_json):
     try: 
@@ -426,7 +459,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
         try:
             engine = db.engine
             with engine.connect() as conn:
-                create_rawdata_table(result_df)
+                create_or_update_table(engine,result_df)
                 result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
