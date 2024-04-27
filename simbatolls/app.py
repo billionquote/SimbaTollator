@@ -448,6 +448,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
         return {'error': 'DataFrames are empty'}, 400
     
     rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
+    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
     tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
 
     # SQL queries remain the same
