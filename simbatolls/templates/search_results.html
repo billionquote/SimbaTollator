@@ -151,6 +151,17 @@
             color: #007bff; /* Bootstrap primary color, or choose your own */
             padding-left: 10px;
         }
+        /* Optional: Custom styles for contract buttons */
+        .btn-primary {
+            background-color: #007bff; /* Primary blue */
+            border-color: #007bff; /* Matching border */
+        }
+
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: #0056b3; /* Darker blue on hover/focus */
+            border-color: #0056b3; /* Matching border */
+        }
+
         
     </style>
     
@@ -182,7 +193,7 @@
                 {% for contract in last_5_contracts %}
                 <form action="{{ url_for('search') }}" method="POST">
                     <input type="hidden" name="search_query" value="{{ contract }}">
-                    <button type="submit" class="btn rounded-pill contract-btn">{{ contract }}</button>
+                    <button type="submit" class="btn btn-primary rounded-pill contract-btn">{{ contract }}</button>
                 </form>
                 {% endfor %}
             </div>
