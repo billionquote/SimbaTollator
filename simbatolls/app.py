@@ -40,7 +40,7 @@ def home():
 import os
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
 database_url =os.getenv('DATABASE_URL')
-#database_url="postgres://ktbzjfczfdhzls:894a3004b174c857f5188cc7148b20e9a660ae6b9c70ce8071287bd7700689de@ec2-35-169-9-79.compute-1.amazonaws.com:5432/d2jinffuso3col"
+#database_url="postgres://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr"
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -50,8 +50,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
-app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+#app.config['CELERY_BROKER_URL'] = os.environ['REDIS_URL']
+#app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 
 
 
@@ -183,11 +183,14 @@ def upload_file():
     try:
         rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
     except ValueError:
-        pass  # Handle the case where conversion to int is not possible
-    rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
-    rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
-    rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
-    rcm_df = rcm_df.drop_duplicates()
+         print('Could not handle formatting rcm file vehicle column file')
+    try:
+        rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
+        rcm_df = rcm_df.drop_duplicates()
+    except ValueError:
+         print('Could not handle formatting rcm date and time file')
     
     # Process Toll File
     tolls_df = pd.read_excel(tolls_file)
@@ -197,7 +200,7 @@ def upload_file():
     try:
         tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(int)
     except ValueError:
-        pass  # Handle the case where conversion to int is not possible
+        print('Could not handle formatting toll file') # Handle the case where conversion to int is not possible
     tolls_df = tolls_df.drop_duplicates()
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(float, errors='ignore')
    
