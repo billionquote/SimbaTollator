@@ -386,42 +386,13 @@ def populate_rawdata_from_df(result_df):
     try:
         for _, row in result_df.iterrows():
             existing_record = RawData.query.filter_by(
-                start_date=row['Start Date'],
-                details=row['Details'],
-                lpn_tag_number=row['LPN/Tag number'],
-                vehicle_class=row['Vehicle Class'],
-                fleet_id=row['Fleet ID'],
-                end_date=row['End Date'],
-                date=row['Date'],
-                rego=row['Rego'],
-                res=row['Res.'],
-                ref=row['Ref.'],
-                update=row['Update'],
-                notes=row['Notes'],
-                status=row['Status'],
-                dropoff=row['Dropoff'],
-                day=row['Day'],
-                dropoff_date=row['Dropoff Date'],
-                time=row['Time'],
-                pickup=row['Pickup'],
-                pickup_date=row['Pickup Date'],
-                time_c13=row['Time_c13'],
-                num_days=row['# Days'],
-                category=row['Category'],
-                vehicle=row['Vehicle'],
-                colour=row['Colour'],
-                items=row['Items'],
-                insurance=row['Insurance'],
-                departure=row['Departure'],
-                next_rental=row['Next Rental'],
-                pickup_date_time=row['Pickup Date Time'],
-                dropoff_date_time=row['Dropoff Date Time'],
-                rcm_rego=row['RCM_Rego']
+                res=row['Res.']
             ).first()
 
             if existing_record:
                 # Update fields that may change
-                #existing_record.trip_cost = row['Trip Cost']
+                existing_record.trip_cost = row['Trip Cost']
+                existing_record.details = row['Details']
                 # Add other fields if there are more that can change
                 pass
             else:
@@ -450,6 +421,7 @@ def populate_rawdata_from_df(result_df):
                 num_days=row['# Days'],
                 category=row['Category'],
                 vehicle=row['Vehicle'],
+                trip_cost = row['Trip Cost'],
                 colour=row['Colour'],
                 items=row['Items'],
                 insurance=row['Insurance'],
@@ -532,8 +504,9 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 print(f'STARTED DOING Populate summary')
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
-                print(f'FINISHED DOING Populate summary table')
                 update_existing_res_values()
+                print(f'FINISHED DOING Populate summary table')
+                
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")
             return {'error': 'Database operation failed', 'details': str(e)}, 500
