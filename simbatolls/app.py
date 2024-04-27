@@ -187,10 +187,10 @@ def upload_file():
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
-    try:
-        rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
-    except ValueError:
-         print('Could not handle formatting rcm file vehicle column file')
+    #try:
+        #rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
+    #except ValueError:
+         #print('Could not handle formatting rcm file vehicle column file')
     try:
         rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
         rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -204,10 +204,10 @@ def upload_file():
     tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-    try:
-        tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(int)
-    except ValueError:
-        print('Could not handle formatting toll file') # Handle the case where conversion to int is not possible
+    #try:
+        #tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(int)
+    #except ValueError:
+        #print('Could not handle formatting toll file') # Handle the case where conversion to int is not possible
     tolls_df = tolls_df.drop_duplicates()
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(float, errors='ignore')
    
@@ -397,6 +397,7 @@ def confirm_upload():
             return jsonify({'error': 'DataFrames are empty'}), 400
         
         rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
+        tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
         # Using pandasql to perform the join operation
         query_tag = """
             SELECT DISTINCT * 
