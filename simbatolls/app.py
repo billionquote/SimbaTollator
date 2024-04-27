@@ -493,10 +493,14 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
         try:
             engine = db.engine
             with engine.connect() as conn:
+                print(f'STARTED DOING CREATE OR UPDATE TABLE')
                 create_or_update_table(engine,result_df)
+                print(f'FINISHED DOING CREATE OR UPDATE TABLE')
                 #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
+                print(f'STARTED DOING Populate summary')
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
+                print(f'FINISHED DOING Populate summary table')
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")
             return {'error': 'Database operation failed', 'details': str(e)}, 500
