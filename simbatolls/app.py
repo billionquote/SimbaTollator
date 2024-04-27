@@ -383,79 +383,84 @@ def populate_rawdata_from_df(result_df):
     result_df = convert_df_types(result_df)
     try:
         for _, row in result_df.iterrows():
-            exists = RawData.query.filter_by(
-                    start_date=row['Start Date'],
-                    details=row['Details'],
-                    lpn_tag_number=row['LPN/Tag number'],
-                    vehicle_class=row['Vehicle Class'],
-                    trip_cost=row['Trip Cost'],
-                    fleet_id=row['Fleet ID'],
-                    end_date=row['End Date'],
-                    date=row['Date'],
-                    rego=row['Rego'],
-                    res=row['Res.'],
-                    ref=row['Ref.'],
-                    update=row['Update'],
-                    notes=row['Notes'],
-                    status=row['Status'],
-                    dropoff=row['Dropoff'],
-                    day=row['Day'],
-                    dropoff_date=row['Dropoff Date'],
-                    time=row['Time'],
-                    pickup=row['Pickup'],
-                    pickup_date=row['Pickup Date'],
-                    time_c13=row['Time_c13'],
-                    num_days=row['# Days'],
-                    category=row['Category'],
-                    vehicle=row['Vehicle'],
-                    colour=row['Colour'],
-                    items=row['Items'],
-                    insurance=row['Insurance'],
-                    departure=row['Departure'],
-                    next_rental=row['Next Rental'],
-                    pickup_date_time=row['Pickup Date Time'],
-                    dropoff_date_time=row['Dropoff Date Time'],
-                    rcm_rego=row['RCM_Rego']
-            ).first() is not None
-            if not exists:
-                raw_data_entry = RawData(
-                    start_date=row['Start Date'],
-                    details=row['Details'],
-                    lpn_tag_number=row['LPN/Tag number'],
-                    vehicle_class=row['Vehicle Class'],
-                    trip_cost=row['Trip Cost'],
-                    fleet_id=row['Fleet ID'],
-                    end_date=row['End Date'],
-                    date=row['Date'],
-                    rego=row['Rego'],
-                    res=row['Res.'],
-                    ref=row['Ref.'],
-                    update=row['Update'],
-                    notes=row['Notes'],
-                    status=row['Status'],
-                    dropoff=row['Dropoff'],
-                    day=row['Day'],
-                    dropoff_date=row['Dropoff Date'],
-                    time=row['Time'],
-                    pickup=row['Pickup'],
-                    pickup_date=row['Pickup Date'],
-                    time_c13=row['Time_c13'],
-                    num_days=row['# Days'],
-                    category=row['Category'],
-                    vehicle=row['Vehicle'],
-                    colour=row['Colour'],
-                    items=row['Items'],
-                    insurance=row['Insurance'],
-                    departure=row['Departure'],
-                    next_rental=row['Next Rental'],
-                    pickup_date_time=row['Pickup Date Time'],
-                    dropoff_date_time=row['Dropoff Date Time'],
-                    rcm_rego=row['RCM_Rego']
+            existing_record = RawData.query.filter_by(
+                start_date=row['Start Date'],
+                details=row['Details'],
+                lpn_tag_number=row['LPN/Tag number'],
+                vehicle_class=row['Vehicle Class'],
+                fleet_id=row['Fleet ID'],
+                end_date=row['End Date'],
+                date=row['Date'],
+                rego=row['Rego'],
+                res=row['Res'],
+                ref=row['Ref'],
+                update=row['Update'],
+                notes=row['Notes'],
+                status=row['Status'],
+                dropoff=row['Dropoff'],
+                day=row['Day'],
+                dropoff_date=row['Dropoff Date'],
+                time=row['Time'],
+                pickup=row['Pickup'],
+                pickup_date=row['Pickup Date'],
+                time_c13=row['Time_c13'],
+                num_days=row['# Days'],
+                category=row['Category'],
+                vehicle=row['Vehicle'],
+                colour=row['Colour'],
+                items=row['Items'],
+                insurance=row['Insurance'],
+                departure=row['Departure'],
+                next_rental=row['Next Rental'],
+                pickup_date_time=row['Pickup Date Time'],
+                dropoff_date_time=row['Dropoff Date Time'],
+                rcm_rego=row['RCM_Rego']
+            ).first()
+
+            if existing_record:
+                # Update fields that may change
+                existing_record.trip_cost = row['Trip Cost']
+                # Add other fields if there are more that can change
+            else:
+                # Create a new record if it does not exist
+                new_record = RawData(
+                start_date=row['Start Date'],
+                details=row['Details'],
+                lpn_tag_number=row['LPN/Tag number'],
+                vehicle_class=row['Vehicle Class'],
+                fleet_id=row['Fleet ID'],
+                end_date=row['End Date'],
+                date=row['Date'],
+                rego=row['Rego'],
+                res=row['Res'],
+                ref=row['Ref'],
+                update=row['Update'],
+                notes=row['Notes'],
+                status=row['Status'],
+                dropoff=row['Dropoff'],
+                day=row['Day'],
+                dropoff_date=row['Dropoff Date'],
+                time=row['Time'],
+                pickup=row['Pickup'],
+                pickup_date=row['Pickup Date'],
+                time_c13=row['Time_c13'],
+                num_days=row['# Days'],
+                category=row['Category'],
+                vehicle=row['Vehicle'],
+                colour=row['Colour'],
+                items=row['Items'],
+                insurance=row['Insurance'],
+                departure=row['Departure'],
+                next_rental=row['Next Rental'],
+                pickup_date_time=row['Pickup Date Time'],
+                dropoff_date_time=row['Dropoff Date Time'],
+                rcm_rego=row['RCM_Rego']
                 )
-            db.session.add(raw_data_entry)
-        db.session.commit()
+                db.session.add(new_record)
+
+        db.session.commit()  # Commit once all records processed
     except Exception as e:
-        db.session.rollback()
+        db.session.rollback()  # Rollback if any error occurs
         print(f"Error populating rawdata table: {e}")
         raise
 
