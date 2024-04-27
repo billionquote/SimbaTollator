@@ -28,6 +28,7 @@ from simbatolls.worker import conn  # Make sure worker.py is accessible as a mod
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, inspect
 from sqlalchemy.types import Integer, String, Float, DateTime
 from sqlalchemy.dialects.postgresql import NUMERIC  # Use NUMERIC for more precise financial data
+from sqlalchemy import update
 #from flask import current_app as app
 
 
@@ -531,6 +532,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 summary, grand_total, admin_fee_total = populate_summary_table(result_df)
                 update_or_insert_summary(summary)
                 print(f'FINISHED DOING Populate summary table')
+                update_existing_res_values()
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")
             return {'error': 'Database operation failed', 'details': str(e)}, 500
@@ -626,6 +628,17 @@ def update_or_insert_summary(summary):
         print("Failed to update or insert summary:", e)
         #traceback2.print_exc()  # This will print stack trace to debug the error
         raise
+
+
+
+def update_existing_res_values():
+    with db.engine.connect() as connection:
+        result = connection.execute("""
+        UPDATE rawdata
+        SET res = TRIM(TRAILING '.0' FROM res)
+        WHERE res LIKE '%.0'
+        """)
+        print(f"Updated {result.rowcount} rows.")
 
 def fetch_summary_data():
     # Create a session object
@@ -732,14 +745,14 @@ def search():
             search_query = str(search_query)
             raw_records = RawData.query.filter(RawData.res == search_query).all()
             print(f'Printing search Query: {search_query}')
-            print(f'Printing search Query: {raw_records}')
+            print(f'Printing search records: {raw_records}')
             raw_records_dicts = [
                 {
                     'start_date': record.start_date.strftime('%Y-%m-%d %H:%M:%S') if record.start_date else '',
                     'details': record.details,
                     'lpn_tag_number': record.lpn_tag_number,
                     'vehicle_class': record.vehicle_class,
-                    #'trip_cost': f"${float(record.trip_cost):,.2f}",
+                    'trip_cost': f"${(record.trip_cost)}",
                     'rego': record.rego
                 }
                 for record in raw_records

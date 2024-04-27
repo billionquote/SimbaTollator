@@ -158,9 +158,11 @@
         </form>
 
 <!-- Progress bar container -->
-        <div class="progress" style="margin-top: 20px;">
-            <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Waiting...</div>
-        </div>
+<!-- Progress bar container, initially hidden -->
+    <div class="progress" style="height: 30px; display: none;">
+        <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Waiting...</div>
+    </div>
+
 
         
         
@@ -178,82 +180,83 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script>
 
-function validateLicense() {
-    var username = $('#username').val();
-    var password = $('#password').val();
-    
-    $.ajax({
-        type: "POST",
-        url: "/validate",
-        data: {username: username, password: password},
-        success: function(response) {
-            $('#license-form').hide();
-            $('#upload-form').show();
-            $('#mainNavbar').show(); // Correctly shows the navbar
-            $('.bg-video').fadeOut(); // Fade out the video
-        },
-        error: function() {
-            alert("Invalid Username or Password.");
+        function validateLicense() {
+            var username = $('#username').val();
+            var password = $('#password').val();
+            
+            $.ajax({
+                type: "POST",
+                url: "/validate",
+                data: {username: username, password: password},
+                success: function(response) {
+                    $('#license-form').hide();
+                    $('#upload-form').show();
+                    $('#mainNavbar').show(); // Correctly shows the navbar
+                    $('.bg-video').fadeOut(); // Fade out the video
+                },
+                error: function() {
+                    alert("Invalid Username or Password.");
+                }
+            });
         }
-    });
-}
-
-
 
         function updateFileName(inputId) {
                 var input = $('#' + inputId);
                 var filename = input.val().split('\\').pop();
                 $('#' + inputId + 'FileName').text(filename); // Display the filename in the corresponding <small> tag
             }
-            function uploadFiles() {
-    var rcmFile = $('#rcmFile')[0].files[0];
-    var tollsFile = $('#tollsFile')[0].files[0];
-    var formData = new FormData();
-    formData.append('rcmFile', rcmFile);
-    formData.append('tollsFile', tollsFile);
+        function uploadFiles() {
+                    var rcmFile = $('#rcmFile')[0].files[0];
+                    var tollsFile = $('#tollsFile')[0].files[0];
+                    var formData = new FormData();
+                    formData.append('rcmFile', rcmFile);
+                    formData.append('tollsFile', tollsFile);
 
-    $.ajax({
-        url: '/upload',
-        type: 'POST',
-        data: formData,
-        contentType: false, 
-        processData: false,
-        success: function(response) {
-            $('#rcmPreview').html(response.rcmPreview);
-            $('#tollsPreview').html(response.tollsPreview);
-            $('#upload-form').hide(); // Hide the upload form after files are uploaded
-            $('#actions').show(); // Show the "Confirm Upload" and "Refresh" buttons
-        },
-        error: function(xhr, status, error) {
-            console.error("File upload failed with error: " + error);
-        }
-    });
-}
+                    $.ajax({
+                        url: '/upload',
+                        type: 'POST',
+                        data: formData,
+                        contentType: false, 
+                        processData: false,
+                        success: function(response) {
+                            $('#rcmPreview').html(response.rcmPreview);
+                            $('#tollsPreview').html(response.tollsPreview);
+                            $('#upload-form').hide(); // Hide the upload form after files are uploaded
+                            $('#actions').show(); // Show the "Confirm Upload" and "Refresh" buttons
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("File upload failed with error: " + error);
+                        }
+                    });
+                }
 
-        function confirmUpload() {
-            var jobId = 'your_job_id_here';  // Ensure this is correctly set or retrieved
-            $('#progressBar').css('width', '10%').attr('aria-valuenow', 10).text('Starting...');
-            checkJobStatus(jobId);
-        }
+    function confirmUpload() {
+        var jobId = 'your_job_id_here'; // Ensure this is correctly set or retrieved
+        // Show the progress bar
+        $('.progress').show();
+        $('#progressBar').css('width', '10%').attr('aria-valuenow', 10).text('Starting...');
+        checkJobStatus(jobId);
+    }
 
-        function checkJobStatus(jobId) {
-            fetch(`/job-status/${jobId}`)
+    function checkJobStatus(jobId) {
+        fetch(`/job-status/${jobId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'finished') {
                     $('#progressBar').css('width', '100%').attr('aria-valuenow', 100).text('Upload Complete');
-                    setTimeout(() => { window.location.href = '/summary'; }, 2000);  // Redirect after 2 seconds
+                    setTimeout(() => { window.location.href = '/summary'; }, 2000); // Redirect after 2 seconds
                 } else if (data.status === 'failed') {
                     $('#progressBar').addClass('bg-danger').css('width', '100%').text('Failed');
                 } else {
                     let progress = parseInt($('#progressBar').attr('aria-valuenow'));
-                    progress = Math.min(progress + 10, 100);  // Incremental update, adjust as necessary
+                    progress = Math.min(progress + 10, 100); // Incremental update, adjust as necessary
                     $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress).text(progress + '% Processing...');
-                    setTimeout(() => checkJobStatus(jobId), 2000);  // Check again after 2 seconds
+                    setTimeout(() => checkJobStatus(jobId), 2000); // Check again after 2 seconds
                 }
             })
             .catch(error => console.error('Error checking job status:', error));
-        }
+    }
+
         
         
         // Example when you get the job ID from server after enqueueing the job
