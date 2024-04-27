@@ -390,14 +390,14 @@ def add_column(engine, table_name, column_name, column_type):
         conn.execute(text(add_stmt))
 
 def create_or_update_table(engine, result_df):
-    metadata = MetaData(ds)
+    metadata = MetaData()
     table_name = 'rawdata'
-
+    print(f'METADATA FROM CREAT TABLE FUNCTION {metadata}')
     # Reflect the existing database schema
     metadata.reflect(bind=engine)
     inspector = inspect(engine)
     existing_columns = {col['name']: col['type'] for col in inspector.get_columns(table_name)} if inspector.has_table(table_name) else {}
-    print(existing_columns)
+    print(f'These are my existing columns in create_or_update: {existing_columns}')
     # Mapping of DataFrame dtypes to SQLAlchemy types
     dtype_map = {
         'int64': Integer,
