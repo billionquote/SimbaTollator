@@ -156,11 +156,11 @@ def upload_file():
     rcm_df.reset_index(drop=True, inplace=True)
     
     rcm_df['RCM_Rego'] = rcm_df.apply(
-                                        lambda row: row['Vehicle'].split(str(row['Pickup']))[0].strip()
-                                        if pd.notna(row['Pickup']) and pd.notna(row['Vehicle']) and str(row['Pickup']) in str(row['Vehicle'])
-                                        else row['Vehicle'],
-                                        axis=1
-                                    )
+        lambda row: row['Vehicle'].split(str(row['Pickup']))[0].strip()
+        if pd.notna(row['Pickup']) and pd.notna(row['Vehicle']) and str(row['Pickup']) in str(row['Vehicle'])
+        else str(row['Vehicle']).strip(),
+        axis=1
+    )
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
@@ -365,32 +365,6 @@ def add_column(engine, table_name, column_name, column_type):
 def create_or_update_table(engine, result_df):
     metadata = MetaData()
     table_name = 'rawdata'
-    metadata.reflect(engine)
-    table = metadata.tables.get(table_name)
-
-    if not table:
-        new_columns = [Column(name, column_type) for name, column_type in column_types.items()]
-        table = Table(table_name, metadata, *new_columns)
-        table.create(engine)
-    else:
-        with engine.connect() as conn:
-            for name, column_type in column_types.items():
-                if name not in table.c:
-                    add_column(conn, table_name, name, str(column_type))
-                elif type(table.c[name].type) is not column_type:
-                    alter_column_type(conn, table_name, name, str(column_type))
-
-    # Perform batch insertion
-    batch_size = 100
-    with engine.connect() as conn:
-        for start in range(0, len(result_df), batch_size):
-            end = start + batch_size
-            batch = result_df.iloc[start:end]
-            conn.execute(table.insert(), batch.to_dict(orient='records'))
-
-def create_or_update_table(engine, result_df):
-    metadata = MetaData()
-    table_name = 'rawdata'
 
     # Explicitly set desired data types
     column_types = {
@@ -444,11 +418,12 @@ def create_or_update_table(engine, result_df):
         with engine.connect() as conn:
             for name, column_type in column_types.items():
                 if name not in table.c:
-                    print(f'I JUST ADDED NEW A COLUMN!!!!! {name}')
+                    print('WE ARE ADDING COLUMNS')
                     add_column(conn, table_name, name, column_type)
                 elif not isinstance(table.c[name].type, column_type):
-                    print(f'I JUST CHANGE COLUMN TYPE {column_type} for column: {name}')
+                    print('WE CHANGED COLUMN TYPES')
                     alter_column_type(conn, table_name, name, column_type)
+                    
 
     # Perform batch insertion
     batch_size = 100  # Adjust the batch size based on your server capacity or performance needs
@@ -459,6 +434,74 @@ def create_or_update_table(engine, result_df):
             batch = result_df.iloc[start:end]
             conn.execute(table.insert(), batch.to_dict(orient='records')) 
 
+
+        
+# Usage in your application would not change other than ensuring the DataFrame is passed
+def confirm_upload_task(rcm_data_json, tolls_data_json):
+    try: 
+        rcm_df = pd.read_json(StringIO(rcm_data_json))
+        tolls_df = pd.read_json(StringIO(tolls_data_json))
+        print(f'RCM_DF FROM CONFIRM UPLOAD: {rcm_df.head(3)}')
+        print(f'tolls_DF FROM CONFIRM UPLOAD: {tolls_df.head(3)}')
+    except ValueError as e:
+        print("Error parsing JSON data: We are in Confirm_upload_task", e)
+        return {'error': 'Invalid JSON data', 'details': str(e)}, 500
+        
+    if rcm_df.empty or tolls_df.empty:
+        print("Debug: DataFrames are empty")
+        return {'error': 'DataFrames are empty'}, 400
+    
+    rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
+    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
+    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
+
+    # SQL queries remain the same
+    query_tag = """
+        SELECT DISTINCT * 
+        FROM tolls_df
+        INNER JOIN rcm_df 
+        ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[Vehicle] as VARCHAR)
+        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    """
+    print(f'MY OUTPUT TO CHECK RCM DATA_RCMMMM: {rcm_df[['Vehicle', 'Pickup Date Time', 'Dropoff Date Time']].head(5)}')
+    print(f'MY OUTPUT TO CHECK TOOOOOLLLLL DATA: {tolls_df[['LPN/Tag number', 'Start Date']].head(5)}')
+  
+
+    result_tag = ps.sqldf(query_tag, locals())
+
+    query_rego = """
+        SELECT DISTINCT * 
+        FROM tolls_df
+        INNER JOIN rcm_df 
+        ON tolls_df.Rego= rcm_df.RCM_Rego
+        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    """
+    result_rego = ps.sqldf(query_rego, locals())
+    print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
+    print(f'result Rego_____: {result_rego.head(5)}') 
+    if result_rego.empty:
+        result_df=result_tag
+    else:
+        result_df = pd.concat([result_tag, result_rego], ignore_index=True)
+    print(f'result df_____ HERE: {result_df.head(5)}')
+    result_df.drop_duplicates(inplace=True)
+
+    if result_df.empty:
+        print("Debug: Resultant DataFrame is empty")
+        return {'error': 'Processed data is empty'}, 400
+    with app.app_context(): 
+        try:
+            engine = db.engine
+            with engine.connect() as conn:
+                create_or_update_table(engine,result_df)
+                #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
+                summary, grand_total, admin_fee_total = populate_summary_table(result_df)
+                update_or_insert_summary(summary)
+        except Exception as e:
+            print(f"Debug: Exception in database operations - {e}")
+            return {'error': 'Database operation failed', 'details': str(e)}, 500
+
+        return {'message': 'Upload and processing successful'}, 200
 
 
 @app.route('/confirm-upload', methods=['POST'])
