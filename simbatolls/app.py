@@ -230,23 +230,8 @@ def upload_file():
     rcm_html = rcm_df.head(3).to_html()
     tolls_html = tolls_df.head(3).to_html()
 
-   
-    # Create temporary files to save DataFrame JSON
-    rcm_temp_file = tempfile.NamedTemporaryFile(delete=False)
-    tolls_temp_file = tempfile.NamedTemporaryFile(delete=False)
 
     job = q.enqueue(confirm_upload_task, rcm_df.to_json(), tolls_df.to_json())
-
-    rcm_df.to_json(rcm_temp_file.name)
-    tolls_df.to_json(tolls_temp_file.name)
-
-    # Store the paths of temporary files in session
-    session['rcm_df_path'] = rcm_temp_file.name
-    session['tolls_df_path'] = tolls_temp_file.name
-
-    # Ensure to close the files
-    rcm_temp_file.close()
-    tolls_temp_file.close()
 
     return jsonify({'rcmPreview': rcm_html, 'tollsPreview': tolls_html, 'message': 'Files are being processed', 'job_id': job.get_id()}), 202
 
@@ -395,9 +380,14 @@ def create_rawdata_table(result_df):
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
 def confirm_upload_task(rcm_data_json, tolls_data_json):
-    rcm_df = pd.read_json(rcm_data_json)
-    tolls_df = pd.read_json(tolls_data_json)
+    try: 
+        rcm_df = pd.read_json(rcm_data_json)
+        tolls_df = pd.read_json(tolls_data_json)
     
+    except ValueError as e:
+        print("Error parsing JSON data: We are in Confirm_upload_task", e)
+        return {'error': 'Invalid JSON data', 'details': str(e)}, 500
+        
     if rcm_df.empty or tolls_df.empty:
         print("Debug: DataFrames are empty")
         return {'error': 'DataFrames are empty'}, 400
@@ -448,13 +438,23 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
 @app.route('/confirm-upload', methods=['POST'])
 @login_required
 def confirm_upload():
-    rcm_df_path = session.get('rcm_df_path')
-    tolls_df_path = session.get('tolls_df_path')
-    if rcm_df_path is None or tolls_df_path is None:
-        return jsonify({'error': 'Session expired or data not found'}), 400
+    job_id = request.args.get('job_id')
+    if not job_id:
+        return jsonify({'error': 'No job ID provided'}), 400
 
-    job = q.enqueue(confirm_upload_task, rcm_df_path, tolls_df_path)
-    return jsonify({'job_id': job.get_id(), 'message': 'Task queued, processing...'}), 202
+    job = q.fetch_job(job_id)
+    if not job:
+        return jsonify({'error': 'Job not found'}), 404
+
+    if job.is_finished:
+        if job.result and 'error' in job.result:
+            return jsonify({'status': 'failed', 'message': job.result}), 500
+        return jsonify({'status': 'completed', 'result': job.result}), 200
+    elif job.is_failed:
+        return jsonify({'status': 'failed', 'message': str(job.exc_info)}), 500
+    else:
+        return jsonify({'status': 'in progress'}), 202
+
 
 @app.route('/job-status/<job_id>')
 def job_status(job_id):
