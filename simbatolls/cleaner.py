@@ -1,16 +1,13 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import os
-from io import StringIO
 
 def cleaner():
-    # Assume DATABASE_URL is set in your environment variables,
-    # typically through Heroku's config vars
-    database_url="postgres://ktbzjfczfdhzls:894a3004b174c857f5188cc7148b20e9a660ae6b9c70ce8071287bd7700689de@ec2-35-169-9-79.compute-1.amazonaws.com:5432/d2jinffuso3col"
+   # database_url = os.getenv('DATABASE_URL')
+    database_url ='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
-    
-    # Set up the database connection
+
     engine = create_engine(database_url)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -23,74 +20,74 @@ def cleaner():
         session.execute(text("""
             CREATE TEMPORARY TABLE temp_rawdata AS 
             SELECT 
-                "Start Date",
-                "Details",
-                "LPN/Tag number",
-                "Vehicle Class",
-                "Trip Cost",
-                "Fleet ID",
-                "End Date",
-                "Date",
-                "Rego",
-                "#",
-                "Res.",
-                "Ref.",
-                "Update",
-                "Notes",
-                "Status",
-                "Dropoff",
-                "Day",
-                "Dropoff Date",
-                "Time",
-                "Pickup",
-                "Pickup Date",
-                "Time_c13",
-                "# Days",
-                "Category",
-                "Vehicle",
-                "Colour",
-                "Items",
-                "Insurance",
-                "Departure",
-                "Next Rental",
-                "Pickup Date Time",
-                "Dropoff Date Time"
+                start_date,
+                details,
+                lpn_tag_number,
+                vehicle_class,
+                trip_cost,
+                fleet_id,
+                end_date,
+                date,
+                rego,
+                res,
+                ref,
+                update,
+                notes,
+                status,
+                dropoff,
+                day,
+                dropoff_date,
+                time,
+                pickup,
+                pickup_date,
+                time_c13,
+                CAST("# Days" AS INTEGER) "# Days",  -- Corrected CAST syntax
+                category,
+                vehicle,
+                colour,
+                items,
+                insurance,
+                departure,
+                next_rental,
+                pickup_date_time,
+                dropoff_date_time,
+                rcm_rego
             FROM (
                 SELECT 
                     *,
                     ROW_NUMBER() OVER (PARTITION BY 
-                        "Start Date",
-                        "Details",
-                        "LPN/Tag number",
-                        "Vehicle Class",
-                        "Trip Cost",
-                        "Fleet ID",
-                        "End Date",
-                        "Date",
-                        "Rego",
-                        "#",
-                        "Res.",
-                        "Ref.",
-                        "Update",
-                        "Notes",
-                        "Status",
-                        "Dropoff",
-                        "Day",
-                        "Dropoff Date",
-                        "Time",
-                        "Pickup",
-                        "Pickup Date",
-                        "Time_c13",
-                        "# Days",
-                        "Category",
-                        "Vehicle",
-                        "Colour",
-                        "Items",
-                        "Insurance",
-                        "Departure",
-                        "Next Rental",
-                        "Pickup Date Time",
-                        "Dropoff Date Time"
+                        start_date,
+                        details,
+                        lpn_tag_number,
+                        vehicle_class,
+                        trip_cost,
+                        fleet_id,
+                        end_date,
+                        date,
+                        rego,
+                        res,
+                        ref,
+                        update,
+                        notes,
+                        status,
+                        dropoff,
+                        day,
+                        dropoff_date,
+                        time,
+                        pickup,
+                        pickup_date,
+                        time_c13,
+                        CAST('# Days' AS INTEGER) '# Days', 
+                        category,
+                        vehicle,
+                        colour,
+                        items,
+                        insurance,
+                        departure,
+                        next_rental,
+                        pickup_date_time,
+                        dropoff_date_time,
+                        rcm_rego
                     ) AS row_num
                 FROM rawdata
             ) AS subquery
@@ -98,51 +95,47 @@ def cleaner():
         """))
 
         # Delete all data from the original table
-        session.execute(text("""
-            DELETE FROM rawdata;
-        """))
+        session.execute(text("DELETE FROM rawdata;"))
 
-        # Copy back unique records to the original table
         # Copy back unique records to the original table
         session.execute(text("""
             INSERT INTO rawdata
             SELECT 
                 CAST(row_number() OVER () AS INTEGER) AS id,
-                "Start Date",
-                "Details",
-                "LPN/Tag number",
-                "Vehicle Class",
-                "Trip Cost",
-                "Fleet ID",
-                "End Date",
-                "Date",
-                "Rego",
-                "#",
-                "Res.",
-                "Ref.",
-                "Update",
-                "Notes",
-                "Status",
-                "Dropoff",
-                "Day",
-                "Dropoff Date",
-                "Time",
-                "Pickup",
-                "Pickup Date",
-                "Time_c13",
-                "# Days",
-                "Category",
-                "Vehicle",
-                "Colour",
-                "Items",
-                "Insurance",
-                "Departure",
-                "Next Rental",
-                "Pickup Date Time",
-                "Dropoff Date Time"
+                start_date,
+                details,
+                lpn_tag_number,
+                vehicle_class,
+                trip_cost,
+                fleet_id,
+                end_date,
+                date,
+                rego,
+                res,
+                ref,
+                update,
+                notes,
+                status,
+                dropoff,
+                day,
+                dropoff_date,
+                time,
+                pickup,
+                pickup_date,
+                time_c13,
+                CAST("# Days" AS INTEGER) AS "# Days", 
+                category,
+                vehicle,
+                colour,
+                items,
+                insurance,
+                departure,
+                next_rental,
+                pickup_date_time,
+                dropoff_date_time,
+                rcm_rego
             FROM temp_rawdata;
         """))
-
 
         # Commit changes
         session.commit()

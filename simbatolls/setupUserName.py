@@ -6,7 +6,7 @@ from flask_login import UserMixin
 
 app = Flask(__name__)
 # to get URI go to Heroku >> settings >> Config Var and update the below
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://ktbzjfczfdhzls:894a3004b174c857f5188cc7148b20e9a660ae6b9c70ce8071287bd7700689de@ec2-35-169-9-79.compute-1.amazonaws.com:5432/d2jinffuso3col'
+app.config['SQLALCHEMY_DATABASE_URI'] ='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'replace_with_a_secret_key'
 
@@ -35,4 +35,15 @@ def add_user(username, password):
 # Example usage
 # add_user (username, password)
 # updatae the password below from ### to whatever 
-add_user('bz@simbacarhire.com.au', '#####')
+#add_user('bz@simbacarhire.com.au', '#####')
+
+def update_password(username, new_password):
+    with app.app_context():
+        user = User.query.filter_by(username=username).first()
+        if user:
+            user.password_hash = bcrypt.generate_password_hash(new_password).decode('utf-8')
+            db.session.commit()
+            return True
+        else:
+            return False
+###update_password('bz@simbacarhire.com.au', '####')
