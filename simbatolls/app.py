@@ -302,18 +302,19 @@ def populate_summary_table():
     print("Original DataFrame:", df.head())  # Display initial data for debugging
 
     # Ensure 'Res.' column is a string and remove any trailing ".0"
-    df['Res'] = df['Res'].astype(str).str.replace(r'\.0$', '', regex=True)
+    print(f'i am populating summary table with column names: {df.columns}')
+    df['res'] = df['res'].astype(str).str.replace(r'\.0$', '', regex=True)
     df['pickup_date_time'] = pd.to_datetime(df['pickup_date_time'])
     df['dropoff_date_time'] = pd.to_datetime(df['dropoff_date_time'])
-    df = df[df['Res'].notnull()]
+    df = df[df['res'].notnull()]
     df = df.drop_duplicates()
     df['trip_cost'] = df['trip_cost'].astype(float)
     # Debug output to see DataFrame before aggregation
     print("DataFrame before aggregation:", df.head())
 
     # Group by the 'Res.' column and perform aggregations
-    summary = df.groupby('Res').agg(
-        Num_of_Rows=('Res', 'size'),
+    summary = df.groupby('res').agg(
+        Num_of_Rows=('res', 'size'),
         Sum_of_Toll_Cost=('trip_cost', 'sum')
     ).reset_index()
 
@@ -339,7 +340,7 @@ def populate_summary_table():
     summary['Total Toll Contract cost'] =  summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
 
     summary = summary.rename(columns={
-        'Res': 'Contract Number'
+        'res': 'Contract Number'
     })
     
     summary['Contract Number'] = summary['Contract Number'].astype(int)
@@ -348,7 +349,7 @@ def populate_summary_table():
     # Final DataFrame to be returned
     print("Final DataFrame for SQL operations:", summary.head())
     summary=summary.rename(columns={
-        'Res.': 'Contract Number'
+        'res': 'Contract Number'
     })
     
     summary['Contract Number'] = summary['Contract Number'].astype(int)
