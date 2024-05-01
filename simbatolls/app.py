@@ -391,7 +391,7 @@ def convert_df_types(df):
 def create_new_raw_data_record(row):
     # Function to create a new RawData instance from row data
     return RawData(
-                       start_date=row['Start Date'],
+                start_date=row['Start Date'],
                 details=row['Details'],
                 lpn_tag_number=row['LPN/Tag number'],
                 vehicle_class=row['Vehicle Class'],
@@ -465,10 +465,10 @@ def populate_rawdata_from_df(result_df):
     #cleaner()
     result_df = convert_df_types(result_df)
     result_df['Res.'] = result_df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
-    existing_records = RawData.query.filter_by(res=row['Res.']).all() 
+     
     try:
         for _, row in result_df.iterrows():
-
+            existing_records = RawData.query.filter_by(res=row['Res.']).all()
             if existing_records:
                 for existing_record in existing_records:
                 # Update fields that may change
