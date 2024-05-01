@@ -45,10 +45,10 @@ def home():
 #use ful comand for flask upgrade poetry run python -m flask db init 
 
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-database_url =os.getenv('DATABASE_URL')
-#database_url="postgres://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr"
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+#database_url =os.getenv('DATABASE_URL')
+database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
+#if database_url.startswith("postgres://"):
+    #database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
@@ -112,13 +112,13 @@ class RawData(db.Model):
     __tablename__ = 'rawdata'
 
     id = db.Column(db.Integer, primary_key=True)
-    start_date = db.Column(db.DateTime)
+    start_date = db.Column(db.String)
     details = db.Column(db.String)
     lpn_tag_number = db.Column(db.String)
     vehicle_class = db.Column(db.String)
     trip_cost = db.Column(db.String)
     fleet_id = db.Column(db.String)
-    end_date = db.Column(db.DateTime)
+    end_date = db.Column(db.String)
     date = db.Column(db.String)
     rego = db.Column(db.String)
     res = db.Column(db.String)
@@ -133,7 +133,7 @@ class RawData(db.Model):
     pickup = db.Column(db.String)
     pickup_date = db.Column(db.String)
     time_c13 = db.Column(db.String)
-    num_days = db.Column(db.Integer, name='# Days')
+    num_days = db.Column(db.String, name='# Days')
     category = db.Column(db.String)
     vehicle = db.Column(db.String)
     colour = db.Column(db.String)
@@ -141,8 +141,8 @@ class RawData(db.Model):
     insurance = db.Column(db.String)
     departure = db.Column(db.String)
     next_rental = db.Column(db.String)
-    pickup_date_time = db.Column(db.DateTime)
-    dropoff_date_time = db.Column(db.DateTime)
+    pickup_date_time = db.Column(db.String)
+    dropoff_date_time = db.Column(db.String)
     rcm_rego = db.Column(db.String)
     
     def __repr__(self):
