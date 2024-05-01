@@ -24,6 +24,7 @@ def cleaner():
             session.execute(text("""
                 CREATE TEMPORARY TABLE temp_rawdata AS 
                 SELECT 
+                    distinct 
                     "# Days",
                     start_date,
                     details,
@@ -56,45 +57,8 @@ def cleaner():
                     pickup_date_time,
                     dropoff_date_time,
                     rcm_rego
-                FROM (
-                    SELECT *,
-                           ROW_NUMBER() OVER (PARTITION BY 
-                               "# Days",
-                               start_date,
-                               details,
-                               lpn_tag_number,
-                               vehicle_class,
-                               trip_cost,
-                               fleet_id,
-                               end_date,
-                               date,
-                               rego,
-                               res,
-                               ref,
-                               update,
-                               notes,
-                               status,
-                               dropoff,
-                               day,
-                               dropoff_date,
-                               time,
-                               pickup,
-                               pickup_date,
-                               time_c13,
-                               category,
-                               vehicle,
-                               colour,
-                               items,
-                               insurance,
-                               departure,
-                               next_rental,
-                               pickup_date_time,
-                               dropoff_date_time,
-                               rcm_rego
-                           ) AS row_num
-                    FROM rawdata
-                ) subquery
-                WHERE row_num = 1;
+                FROM rawData
+;
             """))
 
             session.execute(text("DELETE FROM rawdata;"))
