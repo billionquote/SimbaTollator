@@ -14,14 +14,17 @@ def cleaner():
     with Session() as session:
         try:
             session.begin()
-            result = session.execute(text("SELECT distinct pg_typeof(start_date) FROM rawdata;"))
-            for row in result:
-                print("Data type of start_date in rawdata:", row[0])
-
+            count_before = session.execute(text("SELECT COUNT(*) FROM rawdata;")).scalar()
+            print("Number of records before deduplication:", count_before)
+            #session.execute(text("DELETE FROM rawdata;"))
+            #print('I HAVE NOW DELETED EVERYTHING')
+            #session.execute(text("DELETE FROM summary;"))
+            #print('I HAVE NOW DELETED EVERYTHING')
             # Ensuring start_date is treated as a timestamp
             session.execute(text("""
                 CREATE TEMPORARY TABLE temp_rawdata AS 
                 SELECT 
+                    "# Days",
                     start_date,
                     details,
                     lpn_tag_number,
@@ -43,7 +46,6 @@ def cleaner():
                     pickup,
                     pickup_date,
                     time_c13,
-                    "# Days",
                     category,
                     vehicle,
                     colour,
@@ -57,6 +59,7 @@ def cleaner():
                 FROM (
                     SELECT *,
                            ROW_NUMBER() OVER (PARTITION BY 
+                               "# Days",
                                start_date,
                                details,
                                lpn_tag_number,
@@ -78,7 +81,6 @@ def cleaner():
                                pickup,
                                pickup_date,
                                time_c13,
-                               "# Days",
                                category,
                                vehicle,
                                colour,
@@ -101,6 +103,7 @@ def cleaner():
                 INSERT INTO rawdata
                 SELECT
                     CAST(row_number() OVER () AS INTEGER) AS id, 
+                    "# Days",
                     start_date,
                     details,
                     lpn_tag_number,
@@ -122,7 +125,6 @@ def cleaner():
                     pickup,
                     pickup_date,
                     time_c13,
-                    "# Days",
                     category,
                     vehicle,
                     colour,
@@ -135,7 +137,12 @@ def cleaner():
                     rcm_rego
                 FROM temp_rawdata;
             """))
+            count_after = session.execute(text("SELECT COUNT(*) FROM rawdata;")).scalar()
+            print("Number of records after deduplication:", count_after)
 
+            # Calculate and print the number of duplicates removed
+            duplicates_removed = count_before - count_after
+            print("Duplicates removed:", duplicates_removed)
             session.commit()
             print("Duplicates removed successfully.")
         except Exception as e:

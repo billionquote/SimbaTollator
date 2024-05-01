@@ -83,7 +83,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'validate'
 
 #run vaccum cleaner to clean the database 
-#cleaner()
+cleaner()
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -381,6 +381,8 @@ def convert_df_types(df):
     return df
 
 def populate_rawdata_from_df(result_df):
+    #run vaccum cleaner to clean the database 
+    cleaner()
     result_df = convert_df_types(result_df)
     result_df['Res.'] = result_df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
     try:
@@ -770,7 +772,7 @@ def search():
             print(f'Printing search records: {raw_records}')
             raw_records_dicts = [
                 {
-                    'Toll Date/Time': record.start_date.strftime('%Y-%m-%d %H:%M:%S') if record.start_date else '',
+                    'Toll Date/Time': record.start_date,
                     'Details': record.details,
                     'Tag Number': record.lpn_tag_number,
                     'Vehicle Class': record.vehicle_class,
