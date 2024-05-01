@@ -29,6 +29,7 @@ from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, 
 from sqlalchemy.types import Integer, String, Float, DateTime
 from sqlalchemy.dialects.postgresql import NUMERIC  # Use NUMERIC for more precise financial data
 from sqlalchemy import update
+from sqlalchemy.orm import sessionmaker
 #from flask import current_app as app
 
 
@@ -291,23 +292,29 @@ def load_dataframes(rcm_df_path, tolls_df_path):
         return None, None
 
 
-def populate_summary_table(df):
+def populate_summary_table():
+    engine = db.engine
+    Session = sessionmaker(bind=engine)
+    with Session() as session:
+        # Fetch data from rawdata table into a DataFrame
+        query = "SELECT * FROM rawdata"
+        df = pd.read_sql(query, session.bind)
     print("Original DataFrame:", df.head())  # Display initial data for debugging
 
     # Ensure 'Res.' column is a string and remove any trailing ".0"
-    df['Res.'] = df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
-    df['Pickup Date Time'] = pd.to_datetime(df['Pickup Date Time'])
-    df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
-    df = df[df['Res.'].notnull()]
+    df['Res'] = df['Res'].astype(str).str.replace(r'\.0$', '', regex=True)
+    df['pickup_date_time'] = pd.to_datetime(df['pickup_date_time'])
+    df['dropoff_date_time'] = pd.to_datetime(df['dropoff_date_time'])
+    df = df[df['Res'].notnull()]
     df = df.drop_duplicates()
-    df['Trip Cost'] = df['Trip Cost'].astype(float)
+    df['trip_cost'] = df['trip_cost'].astype(float)
     # Debug output to see DataFrame before aggregation
     print("DataFrame before aggregation:", df.head())
 
     # Group by the 'Res.' column and perform aggregations
-    summary = df.groupby('Res.').agg(
-        Num_of_Rows=('Res.', 'size'),
-        Sum_of_Toll_Cost=('Trip Cost', 'sum')
+    summary = df.groupby('Res').agg(
+        Num_of_Rows=('Res', 'size'),
+        Sum_of_Toll_Cost=('trip_cost', 'sum')
     ).reset_index()
 
     # Debug output to see how aggregation results look
@@ -322,8 +329,8 @@ def populate_summary_table(df):
     print("DataFrame after adding admin_fee:", summary.head())
 
     summary['Total Toll Contract cost'] = summary['admin_fee'] + summary['Sum_of_Toll_Cost']
-    summary['Pickup Date Time'] = df['Pickup Date Time'].dt.strftime('%Y-%m-%d %H:%M')
-    summary['Dropoff Date Time'] = df['Dropoff Date Time'].dt.strftime('%Y-%m-%d %H:%M')
+    summary['Pickup Date Time'] = df['pickup_date_time'].dt.strftime('%Y-%m-%d %H:%M')
+    summary['Dropoff Date Time'] = df['dropoff_date_time'].dt.strftime('%Y-%m-%d %H:%M')
     
     summary['Sum_of_Toll_Cost'] = summary['Sum_of_Toll_Cost'].round(2)
     summary['Total Toll Contract cost'] = summary['Total Toll Contract cost'].round(2)
@@ -332,7 +339,7 @@ def populate_summary_table(df):
     summary['Total Toll Contract cost'] =  summary['Total Toll Contract cost'].astype(float).map('{:,.2f}'.format)
 
     summary = summary.rename(columns={
-        'Res.': 'Contract Number'
+        'Res': 'Contract Number'
     })
     
     summary['Contract Number'] = summary['Contract Number'].astype(int)
@@ -532,7 +539,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 print(f'FINISHED DOING CREATE OR UPDATE TABLE')
                 #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
                 print(f'STARTED DOING Populate summary')
-                summary, grand_total, admin_fee_total = populate_summary_table(result_df)
+                summary, grand_total, admin_fee_total = populate_summary_table()
                 update_or_insert_summary(summary)
                 update_existing_res_values()
                 delete_null_trip_cost_records()
