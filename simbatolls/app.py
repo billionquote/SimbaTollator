@@ -84,7 +84,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'validate'
 
 #run vaccum cleaner to clean the database 
-cleaner()
+#cleaner()
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -390,7 +390,7 @@ def convert_df_types(df):
 
 def populate_rawdata_from_df(result_df):
     #run vaccum cleaner to clean the database 
-    cleaner()
+    #cleaner()
     result_df = convert_df_types(result_df)
     result_df['Res.'] = result_df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
     try:
