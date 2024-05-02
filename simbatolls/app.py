@@ -330,8 +330,8 @@ def populate_summary_table():
     print("DataFrame after adding admin_fee:", summary.head())
 
     summary['Total Toll Contract cost'] = summary['admin_fee'] + summary['Sum_of_Toll_Cost']
-    summary['Pickup Date Time'] = df['pickup_date_time'].dt.strftime('%Y-%m-%d %H:%M')
-    summary['Dropoff Date Time'] = df['dropoff_date_time'].dt.strftime('%Y-%m-%d %H:%M')
+    summary['Pickup Date Time'] = df['pickup_date_time']
+    summary['Dropoff Date Time'] = df['dropoff_date_time']
     
     summary['Sum_of_Toll_Cost'] = summary['Sum_of_Toll_Cost'].round(2)
     summary['Total Toll Contract cost'] = summary['Total Toll Contract cost'].round(2)
@@ -744,7 +744,7 @@ def search():
              # Fetch raw records for the contract using ORM
             #we need to do str conversion as res are stored in different ways in RawData and Summary (in summary it is int and in RawData it is str)
             search_query = str(search_query)
-            raw_records = RawData.query.filter(RawData.res == search_query).all()
+            raw_records = RawData.query.filter(RawData.res == search_query).order_by(RawData.start_date).all()
             print(f'Printing search Query: {search_query}')
             print(f'Printing search records: {raw_records}')
             raw_records_dicts = [
