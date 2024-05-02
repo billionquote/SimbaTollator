@@ -84,7 +84,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'validate'
 
 #run vaccum cleaner to clean the database 
-#cleaner()
+cleaner()
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -425,64 +425,26 @@ def create_new_raw_data_record(row):
                 rcm_rego=row['RCM_Rego']
         # Initialize other fields similarly...
     )
-def update_record(existing_record, row):
-    # Function to update fields of a record
-    existing_record.start_date = row['Start Date']
-    existing_record.details = row['Details']
-    existing_record.lpn_tag_number = row['LPN/Tag number']
-    existing_record.vehicle_class = row['Vehicle Class']
-    existing_record.fleet_id = row['Fleet ID']
-    existing_record.end_date = row['End Date']
-    existing_record.date = row['Date']
-    existing_record.rego = row['Rego']
-    existing_record.res = row['Res.']
-    existing_record.ref = row['Ref.']
-    existing_record.update = row['Update']
-    existing_record.notes = row['Notes']
-    existing_record.status = row['Status']
-    existing_record.dropoff = row['Dropoff']
-    existing_record.day = row['Day']
-    existing_record.dropoff_date = row['Dropoff Date']
-    existing_record.time = row['Time']
-    existing_record.pickup = row['Pickup']
-    existing_record.pickup_date = row['Pickup Date']
-    existing_record.time_c13 = row['Time_c13']
-    existing_record.num_days = row['# Days']
-    existing_record.category = row['Category']
-    existing_record.vehicle = row['Vehicle']
-    existing_record.trip_cost = row['Trip Cost']
-    existing_record.colour = row['Colour']
-    existing_record.items = row['Items']
-    existing_record.insurance = row['Insurance']
-    existing_record.departure = row['Departure']
-    existing_record.next_rental = row['Next Rental']
-    existing_record.pickup_date_time = row['Pickup Date Time']
-    existing_record.dropoff_date_time = row['Dropoff Date Time']
-    existing_record.rcm_rego = row['RCM_Rego']
+
 #change approach
 def populate_rawdata_from_df(result_df):
-    #run vaccum cleaner to clean the database 
-    #cleaner()
+    # Convert DataFrame types
     result_df = convert_df_types(result_df)
     result_df['Res.'] = result_df['Res.'].astype(str).str.replace(r'\.0$', '', regex=True)
-     
+
     try:
         for _, row in result_df.iterrows():
-            existing_records = RawData.query.filter_by(res=row['Res.']).all()
-            if existing_records:
-                for existing_record in existing_records:
-                # Update fields that may change
-                    update_record(existing_record, row)
-            else:
-                new_record = create_new_raw_data_record(row)
-                db.session.add(new_record)
+            # Always create a new record for each row, regardless of existing 'Res.' values
+            new_record = create_new_raw_data_record(row)
+            db.session.add(new_record)
 
-        db.session.commit()  # Commit once all records processed
+        # Commit all new records to the database
+        db.session.commit()
+        print("All data added successfully.")
     except Exception as e:
         db.session.rollback()  # Rollback if any error occurs
         print(f"Error populating rawdata table: {e}")
         raise
-
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
 def confirm_upload_task(rcm_data_json, tolls_data_json):
@@ -546,6 +508,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 print(f'FINISHED DOING CREATE OR UPDATE TABLE')
                 #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
                 print(f'STARTED DOING Populate summary')
+                cleaner()
                 summary, grand_total, admin_fee_total = populate_summary_table()
                 update_or_insert_summary(summary)
                 update_existing_res_values()
