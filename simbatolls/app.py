@@ -46,10 +46,10 @@ def home():
 #use ful comand for flask upgrade poetry run python -m flask db init 
 
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-#database_url =os.getenv('DATABASE_URL')
-database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
-#if database_url.startswith("postgres://"):
-    #database_url = database_url.replace("postgres://", "postgresql://", 1)
+database_url =os.getenv('DATABASE_URL')
+#database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
@@ -102,8 +102,8 @@ class Summary(db.Model):
     num_of_rows = db.Column(db.Integer)
     sum_of_toll_cost = db.Column(db.Float)
     total_toll_contract_cost = db.Column(db.Float)
-    pickup_date_time = db.Column(db.DateTime)
-    dropoff_date_time = db.Column(db.DateTime)
+    pickup_date_time = db.Column(db.String)
+    dropoff_date_time = db.Column(db.String)
     admin_fee = db.Column(db.Float)
 
     def __repr__(self):
@@ -304,8 +304,8 @@ def populate_summary_table():
     # Ensure 'Res.' column is a string and remove any trailing ".0"
     print(f'i am populating summary table with column names: {df.columns}')
     df['res'] = df['res'].astype(str).str.replace(r'\.0$', '', regex=True)
-    df['pickup_date_time'] = pd.to_datetime(df['pickup_date_time'])
-    df['dropoff_date_time'] = pd.to_datetime(df['dropoff_date_time'])
+    df['pickup_date_time'] = df['pickup_date_time'].astype(str)
+    df['dropoff_date_time'] = df['dropoff_date_time'].astype(str)
     df = df[df['res'].notnull()]
     df = df.drop_duplicates()
     df['trip_cost'] = df['trip_cost'].astype(float)
