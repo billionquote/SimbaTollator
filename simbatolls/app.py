@@ -30,6 +30,9 @@ from sqlalchemy.types import Integer, String, Float, DateTime
 from sqlalchemy.dialects.postgresql import NUMERIC  # Use NUMERIC for more precise financial data
 from sqlalchemy import update
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
+from sqlalchemy import create_engine, select, func
+
 #from flask import current_app as app
 
 
@@ -568,16 +571,16 @@ def update_or_insert_summary(summary):
                     print(f'update_or_insert_summary is working: row: {row}')
                     #print(f'row: {row['admin_fee']}')
                     admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
-                    pickup_date_time = row['pickup_date_time']
-                    dropoff_date_time = row['dropoff_date_time']
+                    #pickup_date_time = row['pickup_date_time']
+                   # dropoff_date_time = row['dropoff_date_time']
                     
                     params = {
                         'contract_number': int(row['contract_number']),
                         'num_of_rows': int(row['num_of_rows']),
                         'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
                         'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
-                        'pickup_date_time': pickup_date_time,
-                        'dropoff_date_time': dropoff_date_time,
+                        'pickup_date_time': row['pickup_date_time'],
+                        'dropoff_date_time': row['dropoff_date_time'],
                         'admin_fee': admin_fee
                     }
                     
@@ -769,6 +772,47 @@ def search():
         # Initial page load, no search performed
         return render_template('search_results.html', last_5_contracts=last_5_contracts, search_query=search_query)
 
+@app.route('/dashboard', methods=['GET', 'POST'])
+@login_required
+def dashboard():
+    # Default dates or dynamic retrieval based on request
+    start_date = request.form.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
+    end_date = request.form.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+
+    # Fetch data for visualizations
+    tolls_data = fetch_tolls_data(start_date, end_date)
+    summary_data = fetch_summary_data(start_date, end_date)
+
+    # You may want to process this data to fit your visualization needs
+    return render_template('dashboard.html', tolls_data=tolls_data, summary_data=summary_data, start_date=start_date, end_date=end_date)
+
+def fetch_tolls_data(start_date, end_date):
+    session = Session(bind=db.engine)
+    try:
+        tolls_query = session.execute(
+            select([RawData.id, RawData.start_date, func.count(RawData.id).label('toll_count')])
+            .where(RawData.start_date.between(start_date, end_date))
+            .group_by(RawData.start_date)
+        ).fetchall()
+        return [{column: value for column, value in row.items()} for row in tolls_query]
+    finally:
+        session.close()
+
+def fetch_summary_data(start_date, end_date):
+    session = Session(bind=db.engine)
+    try:
+        summary_query = session.execute(
+            select([
+                Summary.dropoff_date_time,
+                func.sum(Summary.total_toll_contract_cost).label('total_cost'),
+                func.sum(Summary.admin_fee).label('total_admin_fee')
+            ])
+            .where(Summary.dropoff_date_time.between(start_date, end_date))
+            .group_by(Summary.dropoff_date_time)
+        ).fetchall()
+        return [{column: value for column, value in row.items()} for row in summary_query]
+    finally:
+        session.close()
 
 if __name__ == '__main__':
     db.create_all()
