@@ -4,10 +4,10 @@ import os
 from io import StringIO
 
 def cleaner():
-    database_url = os.getenv('DATABASE_URL', 'your_hardcoded_database_url')
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    #database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
+    #database_url = os.getenv('DATABASE_URL', 'your_hardcoded_database_url')
+    #if database_url.startswith("postgres://"):
+        #database_url = database_url.replace("postgres://", "postgresql://", 1)
+    database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
     engine = create_engine(database_url)
     Session = sessionmaker(bind=engine)
 
@@ -114,10 +114,10 @@ def cleaner():
             session.rollback()
             print(f"Failed to remove duplicates: {e}")
 def summary_cleaner():
-    database_url = os.getenv('DATABASE_URL', 'your_hardcoded_database_url')
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    #database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
+    #database_url = os.getenv('DATABASE_URL', 'your_hardcoded_database_url')
+    #if database_url.startswith("postgres://"):
+        #database_url = database_url.replace("postgres://", "postgresql://", 1)
+    database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
     engine = create_engine(database_url)
     Session = sessionmaker(bind=engine)
 

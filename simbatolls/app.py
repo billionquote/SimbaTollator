@@ -32,6 +32,7 @@ from sqlalchemy import update
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from sqlalchemy import create_engine, select, func
+from sqlalchemy import cast, Date
 
 #from flask import current_app as app
 
@@ -309,7 +310,10 @@ def populate_summary_table():
     df['res'] = df['res'].astype(str).str.replace(r'\.0$', '', regex=True)
     df['pickup_date_time'] = df['pickup_date_time'].astype(str)
     df['dropoff_date_time'] = df['dropoff_date_time'].astype(str)
-    print(f'INSIDE POPULATE SUMMARY TABLE THE DF HEAD IS THIS ****** WE NEED TO CHECK FOR FORMATTING{df.head(10)}')
+        # Filtering to show only rows with res 7791 for debugging
+    debug_df = df[df['res'] == '7791']
+    print(f"Debugging DataFrame for res 7791: {debug_df[['pickup_date_time', 'dropoff_date_time']]}")
+
     df = df[df['res'].notnull()]
     df = df.drop_duplicates()
     df['trip_cost'] = df['trip_cost'].astype(float)
@@ -792,9 +796,13 @@ def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
         tolls_query = session.execute(
-            select([RawData.id, RawData.start_date, func.count(RawData.id).label('toll_count')])
-            .where(RawData.start_date.between(start_date, end_date))
-            .group_by(RawData.start_date)
+            select([
+                RawData.id, 
+                cast(RawData.start_date, Date).label('start_date'),  # Casting start_date as Date
+                func.count(RawData.id).label('toll_count')
+            ]).where(
+                cast(RawData.start_date, Date).between(start_date, end_date)  # Ensure comparison is between date types
+            ).group_by(cast(RawData.start_date, Date))
         ).fetchall()
         return [{column: value for column, value in row.items()} for row in tolls_query]
     finally:
