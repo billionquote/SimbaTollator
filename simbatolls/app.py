@@ -13,7 +13,7 @@ import traceback2
 from sqlalchemy.orm import Session
 from sqlalchemy import select, column, create_engine, Table, MetaData
 from io import StringIO
-from simbatolls.cleaner import cleaner
+from simbatolls.cleaner import cleaner,summary_cleaner
 from celery import Celery
 from flask_migrate import Migrate
 #login fixes 
@@ -87,7 +87,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'validate'
 
 #run vaccum cleaner to clean the database 
-cleaner()
+#cleaner()
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -517,6 +517,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 update_existing_res_values()
                 delete_null_trip_cost_records()
                 print(f'FINISHED DOING Populate summary table')
+                summary_cleaner()
                 
         except Exception as e:
             print(f"Debug: Exception in database operations - {e}")
@@ -781,7 +782,7 @@ def dashboard():
 
     # Fetch data for visualizations
     tolls_data = fetch_tolls_data(start_date, end_date)
-    summary_data = fetch_summary_data(start_date, end_date)
+    summary_data = fetch_summary_data_dashboard(start_date, end_date)
 
     # You may want to process this data to fit your visualization needs
     return render_template('dashboard.html', tolls_data=tolls_data, summary_data=summary_data, start_date=start_date, end_date=end_date)
@@ -798,7 +799,7 @@ def fetch_tolls_data(start_date, end_date):
     finally:
         session.close()
 
-def fetch_summary_data(start_date, end_date):
+def fetch_summary_data_dashboard(start_date, end_date):
     session = Session(bind=db.engine)
     try:
         summary_query = session.execute(
