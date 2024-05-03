@@ -577,16 +577,16 @@ def update_or_insert_summary(summary):
                     #print(f'update_or_insert_summary is working: row: {row}')
                     #print(f'row: {row['admin_fee']}')
                     admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
-                    pickup_date_time = row['pickup_date_time']
-                    dropoff_date_time = row['dropoff_date_time']
+                    pickup_date_time = datetime.strptime(row['pickup_date_time'], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+                    dropoff_date_time = datetime.strptime(row['dropoff_date_time'], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
                     
                     params = {
                         'contract_number': int(row['contract_number']),
                         'num_of_rows': int(row['num_of_rows']),
                         'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
                         'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
-                        'pickup_date_time': str(row['pickup_date_time']),
-                        'dropoff_date_time': str(row['dropoff_date_time']),
+                        'pickup_date_time': pickup_date_time,
+                        'dropoff_date_time': dropoff_date_time,
                         'admin_fee': admin_fee
                     }
                     
