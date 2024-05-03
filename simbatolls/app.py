@@ -309,6 +309,7 @@ def populate_summary_table():
     df['res'] = df['res'].astype(str).str.replace(r'\.0$', '', regex=True)
     df['pickup_date_time'] = df['pickup_date_time'].astype(str)
     df['dropoff_date_time'] = df['dropoff_date_time'].astype(str)
+    print(f'INSIDE POPULATE SUMMARY TABLE THE DF HEAD IS THIS ****** WE NEED TO CHECK FOR FORMATTING{df.head(10)}')
     df = df[df['res'].notnull()]
     df = df.drop_duplicates()
     df['trip_cost'] = df['trip_cost'].astype(float)
@@ -333,8 +334,8 @@ def populate_summary_table():
     print("DataFrame after adding admin_fee:", summary.head())
 
     summary['Total Toll Contract cost'] = summary['admin_fee'] + summary['Sum_of_Toll_Cost']
-    summary['Pickup Date Time'] = df['pickup_date_time']
-    summary['Dropoff Date Time'] = df['dropoff_date_time']
+    summary['Pickup Date Time'] = df['pickup_date_time'].astype(str)
+    summary['Dropoff Date Time'] = df['dropoff_date_time'].astype(str)
     
     summary['Sum_of_Toll_Cost'] = summary['Sum_of_Toll_Cost'].round(2)
     summary['Total Toll Contract cost'] = summary['Total Toll Contract cost'].round(2)
