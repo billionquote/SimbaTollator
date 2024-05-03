@@ -568,8 +568,8 @@ def update_or_insert_summary(summary):
                     print(f'update_or_insert_summary is working: row: {row}')
                     #print(f'row: {row['admin_fee']}')
                     admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
-                    pickup_date_time = row['pickup_date_time'].to_pydatetime() if isinstance(row['pickup_date_time'], pd.Timestamp) else row['pickup_date_time']
-                    dropoff_date_time = row['dropoff_date_time'].to_pydatetime() if isinstance(row['dropoff_date_time'], pd.Timestamp) else row['dropoff_date_time']
+                    pickup_date_time = row['pickup_date_time']
+                    dropoff_date_time = row['dropoff_date_time']
                     
                     params = {
                         'contract_number': int(row['contract_number']),
