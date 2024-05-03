@@ -593,7 +593,7 @@ def update_or_insert_summary(summary):
                     #print("SQL Params:", params)  # Debugging output
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
-                    if row['contract_number'] == '7791':
+                    if row['contract_number'] == 7791:
                         print(f"Contract 7791 - THIS IS IN THE UPPDATE SUMMARY >>>> Pickup DateTime: {pickup_date_time}, Dropoff DateTime: {dropoff_date_time}")
                     
                     if existing:
