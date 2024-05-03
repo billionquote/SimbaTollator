@@ -308,7 +308,7 @@ def populate_summary_table():
     # Ensure 'Res.' column is a string and remove any trailing ".0"
     print(f'i am populating summary table with column names: {df.columns}')
     df['res'] = df['res'].astype(str).str.replace(r'\.0$', '', regex=True)
-    df['pickup_date_time'] = df['pickup_date_time'].astype(str)
+    df['pickup_date_time'] = pd.to_datetime(df['pickup_date_time'])
     df['dropoff_date_time'] = df['dropoff_date_time'].astype(str)
         # Filtering to show only rows with res 7791 for debugging
     debug_df = df[df['res'] == '7791']
