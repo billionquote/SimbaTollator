@@ -19,7 +19,7 @@ def cleaner():
             #session.execute(text("DELETE FROM rawdata;"))
             #print('I HAVE NOW DELETED EVERYTHING')
             
-            #session.execute(text("DELETE FROM summary;"))
+           # session.execute(text("DELETE FROM summary;"))
            # print('I HAVE NOW DELETED EVERYTHING')
             # Ensuring start_date is treated as a timestamp
             session.execute(text("""
