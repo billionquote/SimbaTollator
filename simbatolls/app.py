@@ -570,7 +570,7 @@ def update_or_insert_summary(summary):
             transaction = conn.begin()
             try:
                 for index, row in summary.iterrows():
-                    print(f'update_or_insert_summary is working: row: {row}')
+                    #print(f'update_or_insert_summary is working: row: {row}')
                     #print(f'row: {row['admin_fee']}')
                     admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
                     #pickup_date_time = row['pickup_date_time']
