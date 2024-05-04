@@ -801,7 +801,7 @@ def search():
 @login_required
 def dashboard():
     # Only render the page initially with default dates
-    start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
     end_date = datetime.now().strftime('%Y-%m-%d')
     return render_template('dashboard.html', start_date=start_date, end_date=end_date)
 
