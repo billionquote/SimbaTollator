@@ -917,7 +917,7 @@ def fetch_admin_fees_data(start_date, end_date):
             textposition='auto'
         )])
         fig.update_layout(
-            title='Admin Fee Usage',
+            title='Admin Fee',
             xaxis_title='Month',
             yaxis_title='Admin Fee Total ($)',
             plot_bgcolor='white', 
