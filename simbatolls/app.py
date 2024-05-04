@@ -809,7 +809,7 @@ def fetch_tolls_data(start_date, end_date):
             EXTRACT(YEAR FROM CAST(start_date AS DATE)) AS year,
             COUNT(DISTINCT (start_date, res, details, lpn_tag_number, end_date, trip_cost)) AS unique_toll_count
         FROM
-            raw_data
+            rawdata
         WHERE
             CAST(start_date AS DATE) BETWEEN :start_date AND :end_date
             AND res IS NOT NULL
