@@ -824,13 +824,16 @@ def fetch_tolls_data(start_date, end_date):
             year, month;
         """
         result = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
-        months = [f"{row['year']}-{int(row['month']):02d}" for row in result]
-        counts = [row['unique_toll_count'] for row in result]
+        # Converting the result set to a list of dictionaries if not already
+        result_dicts = [dict(row) for row in result]
+        months = [f"{row['year']}-{int(row['month']):02d}" for row in result_dicts]
+        counts = [row['unique_toll_count'] for row in result_dicts]
 
         fig = go.Figure(data=[go.Bar(x=months, y=counts)])
         return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     finally:
         session.close()
+
 
 if __name__ == '__main__':
     db.create_all()
