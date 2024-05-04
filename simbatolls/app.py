@@ -894,7 +894,7 @@ def fetch_admin_fees_data(start_date, end_date):
             yaxis_title='Admin Fee Total',
             plot_bgcolor='white'
         )
-        return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+        return fig.to_dict()
     finally:
         session.close()
 
