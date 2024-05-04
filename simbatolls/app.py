@@ -824,8 +824,8 @@ def fetch_tolls_data(start_date, end_date):
             year, month;
         """
         result = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
-        # Converting the result set to a list of dictionaries if not already
-        result_dicts = [dict(row) for row in result]
+        # Using _asdict() if available or converting manually
+        result_dicts = [row._asdict() if hasattr(row, '_asdict') else dict(row.items()) for row in result]
         months = [f"{row['year']}-{int(row['month']):02d}" for row in result_dicts]
         counts = [row['unique_toll_count'] for row in result_dicts]
 
@@ -833,6 +833,7 @@ def fetch_tolls_data(start_date, end_date):
         return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     finally:
         session.close()
+
 
 
 if __name__ == '__main__':
