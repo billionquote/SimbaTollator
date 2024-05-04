@@ -309,7 +309,7 @@ def populate_summary_table():
     print(f'i am populating summary table with column names: {df.columns}')
     df['res'] = df['res'].astype(str).str.replace(r'\.0$', '', regex=True)
     df['pickup_date_time'] = pd.to_datetime(df['pickup_date_time'])
-    df['dropoff_date_time'] = df['dropoff_date_time'].astype(str)
+    df['dropoff_date_time'] = pd.to_datetime(df['dropoff_date_time'])
         # Filtering to show only rows with res 7791 for debugging
     debug_df = df[df['res'] == '7791']
     print(f"Debugging DataFrame for res 7791: {debug_df[['pickup_date_time', 'dropoff_date_time']]}")
@@ -359,8 +359,6 @@ def populate_summary_table():
     summary=summary.rename(columns={
         'res': 'Contract Number'
     })
-    
-    summary['Contract Number'] = summary['Contract Number'].astype(int)
     summary = summary.sort_values(by='Contract Number', ascending=False)
         # Rename the columns for clarity
     summary = summary.rename(columns={
@@ -372,6 +370,22 @@ def populate_summary_table():
         'Dropoff Date Time': 'dropoff_date_time',
         'admin_fee': 'admin_fee'
     })
+    for index, row in summary.iterrows():
+        
+        new_summary = Summary(
+                    contract_number=row['contract_number'],
+                    num_of_rows=row['Num_of_Rows'],
+                    sum_of_toll_cost=row['Sum_of_Toll_Cost'],
+                    pickup_date_time=row['Pickup_Date_Time'],
+                    dropoff_date_time=row['Dropoff_Date_Time'],
+                    admin_fee=row['Admin_Fee'],
+                    total_toll_contract_cost=row['Total_Toll_Contract_Cost']
+                )
+        if row['contract_number'] == 7791:
+            print(f"Contract 7791 - THIS IS IN THE UPPDATE SUMMARY >>>> Pickup DateTime: {row['Pickup_Date_Time']}, Dropoff DateTime: {row['Dropoff_Date_Time']}")
+        session.add(new_summary)
+
+        
     return summary, grand_total, admin_fee_total
 
 def convert_df_types(df):
@@ -518,7 +532,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 print(f'STARTED DOING Populate summary')
                 cleaner()
                 summary, grand_total, admin_fee_total = populate_summary_table()
-                update_or_insert_summary(summary)
+                #update_or_insert_summary(summary)
                 update_existing_res_values()
                 delete_null_trip_cost_records()
                 print(f'FINISHED DOING Populate summary table')
