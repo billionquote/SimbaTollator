@@ -65,11 +65,11 @@
     </div>
 
     <script>
-        function updateCharts() {
+        function updateTollsChart() {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
     
-            fetch(`/dashboard/data?start_date=${startDate}&end_date=${endDate}`)
+            fetch(`/dashboard/tolls_data?start_date=${startDate}&end_date=${endDate}`)
             .then(response => response.json())
             .then(data => {
                 var layout = {
@@ -88,13 +88,34 @@
                 };
     
                 Plotly.newPlot('tollsChart', data, layout);
-                Plotly.newPlot('adminFeesChart', data.adminFees);
+
             })
             .catch(error => console.error('Error fetching data:', error));
         }
-    
+        function updateAdminFeesChart() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+        
+            fetch(`/dashboard/admin_fees_data?start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                var layout = {
+                    title: 'Admin Fees Usage',
+                    xaxis: { title: 'Month' },
+                    yaxis: { title: 'Total Admin Fees' },
+                    barmode: 'group',
+                    bargap: 0.15,
+                    bargroupgap: 0.1,
+                    bar: {color: 'blue'},
+                    margin: {t: 30, l: 150, r: 30, b: 50}
+                };
+                Plotly.newPlot('adminFeesChart', data, layout);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+        }
         document.addEventListener('DOMContentLoaded', function() {
-            updateCharts();  // Initial fetch and render
+            updateTollsChart();
+            updateAdminFeesChart();  // Initial fetch and render
         });
     </script>
 

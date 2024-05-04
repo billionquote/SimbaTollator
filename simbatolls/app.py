@@ -802,21 +802,24 @@ def dashboard():
     end_date = datetime.now().strftime('%Y-%m-%d')
     return render_template('dashboard.html', start_date=start_date, end_date=end_date)
 
-@app.route('/dashboard/data', methods=['GET'])
+@app.route('/dashboard/tolls_data', methods=['GET'])
 @login_required
 def dashboard_data():
     start_date = request.args.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
     tolls_chart_json = fetch_tolls_data(start_date, end_date)
-    admin_fees_chart_json = fetch_admin_fees_data(start_date, end_date)
     #return tolls_chart_json  # Ensure this returns JSON formatted for Plotly
-    return jsonify({
-        "tolls": tolls_chart_json,
-        "adminFees": admin_fees_chart_json
-    })
+    return tolls_chart_json
 
-
-
+@app.route('/dashboard/admin_fees_data', methods=['GET'])
+@login_required
+def dashboard_data_admin():
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    admin_chart_json = fetch_admin_fees_data(start_date, end_date)
+    #return tolls_chart_json  # Ensure this returns JSON formatted for Plotly
+    return admin_chart_json
+ 
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
@@ -854,8 +857,8 @@ def fetch_tolls_data(start_date, end_date):
             yaxis_title='Toll Usage Count',
             plot_bgcolor='white'
         )
-        #return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-        return fig.to_dict()
+        return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+        
     finally:
         session.close()
     
@@ -884,7 +887,7 @@ def fetch_admin_fees_data(start_date, end_date):
         fig = go.Figure(data=[go.Bar(
             x=months,
             y=fees,
-            marker_color='#007bff',
+            marker_color='#560BAD',
             text=fees,
             textposition='auto'
         )])
@@ -894,7 +897,7 @@ def fetch_admin_fees_data(start_date, end_date):
             yaxis_title='Admin Fee Total',
             plot_bgcolor='white'
         )
-        return fig.to_dict()
+        return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     finally:
         session.close()
 
