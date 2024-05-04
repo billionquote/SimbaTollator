@@ -382,7 +382,7 @@ def populate_summary_table():
                     total_toll_contract_cost=row['total_toll_contract_cost']
                 )
         if row['contract_number'] == 7791:
-            print(f"Contract 7791 - THIS IS IN THE UPPDATE SUMMARY >>>> Pickup DateTime: {row['Pickup_Date_Time']}, Dropoff DateTime: {row['Dropoff_Date_Time']}")
+            print(f"Contract 7791 - THIS IS IN THE UPPDATE SUMMARY >>>> Pickup DateTime: {row['pickup_date_time']}, Dropoff DateTime: {row['pickup_date_time']}")
         session.add(new_summary)
 
         
