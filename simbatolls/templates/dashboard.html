@@ -58,7 +58,7 @@
                 <input type="date" id="start_date" value="{{ start_date }}">
                 <label for="end_date">End Date:</label>
                 <input type="date" id="end_date" value="{{ end_date }}">
-                <button class="btn btn-primary" onclick="updateCharts()">Update</button>
+                <button id="updateButton" class="btn btn-primary">Update</button>
             </div>
         </div>
         <div id="tollsChart"></div>
@@ -114,9 +114,16 @@
             .catch(error => console.error('Error fetching data:', error));
         }
         document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('updateButton').addEventListener('click', function() {
+                updateTollsChart();
+                updateAdminFeesChart();
+            });
+        
+            // Initial fetch and render on page load
             updateTollsChart();
-            updateAdminFeesChart();  // Initial fetch and render
+            updateAdminFeesChart();
         });
+        ;
     </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
