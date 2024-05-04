@@ -374,12 +374,12 @@ def populate_summary_table():
         
         new_summary = Summary(
                     contract_number=row['contract_number'],
-                    num_of_rows=row['Num_of_Rows'],
-                    sum_of_toll_cost=row['Sum_of_Toll_Cost'],
-                    pickup_date_time=row['Pickup_Date_Time'],
-                    dropoff_date_time=row['Dropoff_Date_Time'],
-                    admin_fee=row['Admin_Fee'],
-                    total_toll_contract_cost=row['Total_Toll_Contract_Cost']
+                    num_of_rows=row['num_of_rows'],
+                    sum_of_toll_cost=row['sum_of_toll_cost'],
+                    pickup_date_time=row['pickup_date_time'],
+                    dropoff_date_time=row['dropoff_date_time'],
+                    admin_fee=row['admin_fee'],
+                    total_toll_contract_cost=row['total_toll_contract_cost']
                 )
         if row['contract_number'] == 7791:
             print(f"Contract 7791 - THIS IS IN THE UPPDATE SUMMARY >>>> Pickup DateTime: {row['Pickup_Date_Time']}, Dropoff DateTime: {row['Dropoff_Date_Time']}")
