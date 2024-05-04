@@ -801,16 +801,18 @@ def dashboard():
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
-        # Correct the query syntax
-        tolls_query = session.execute(
-            select([
-                RawData.id,
-                cast(RawData.start_date, Date).label('start_date'),
-                func.count(RawData.id).label('toll_count')
-            ]).where(
-                cast(RawData.start_date, Date).between(start_date, end_date)
-            ).group_by(cast(RawData.start_date, Date))
-        ).fetchall()
+        # Building the select statement explicitly
+        stmt = select(
+            RawData.id,
+            cast(RawData.start_date, Date).label('start_date'),
+            func.count(RawData.id).label('toll_count')
+        ).where(
+            cast(RawData.start_date, Date).between(start_date, end_date)
+        ).group_by(
+            cast(RawData.start_date, Date)
+        )
+
+        tolls_query = session.execute(stmt).fetchall()
         return [{column: value for column, value in row.items()} for row in tolls_query]
     finally:
         session.close()
