@@ -34,7 +34,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, select, func
 from sqlalchemy import cast, Date
 from sqlalchemy import select, func, cast, Date, tuple_, and_, distinct
-from sqlalchemy import select, func, distinct, and_, cast, Date, tuple_
+from sqlalchemy import select, func, distinct, and_, cast, Date, tuple_, extract
 #from flask import current_app as app
 
 
@@ -802,9 +802,11 @@ def dashboard():
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
-        # Construct the select statement with group by
+        # Use the extract function to group by month and year
         stmt = select([
-            func.count().label('unique_toll_count')  # Counting rows in each group
+            func.count().label('toll_count'),  # Counting total rows per group
+            extract('month', cast(RawData.start_date, Date)).label('month'),
+            extract('year', cast(RawData.start_date, Date)).label('year')
         ]).where(
             and_(
                 cast(RawData.start_date, Date).between(start_date, end_date),
@@ -815,16 +817,12 @@ def fetch_tolls_data(start_date, end_date):
                 RawData.trip_cost.isnot(None)
             )
         ).group_by(
-            cast(RawData.start_date, Date),
-            RawData.res,
-            RawData.details,
-            RawData.lpn_tag_number,
-            cast(RawData.end_date, Date),
-            RawData.trip_cost
-        )
+            extract('month', cast(RawData.start_date, Date)),
+            extract('year', cast(RawData.start_date, Date))
+        ).order_by('year', 'month')
 
         tolls_query = session.execute(stmt).fetchall()
-        return [{'unique_toll_count': len(tolls_query)}]  # The length of the result list is the count of unique groups
+        return [{'month': row['month'], 'year': row['year'], 'toll_count': row['toll_count']} for row in tolls_query]
     finally:
         session.close()
 
