@@ -802,19 +802,16 @@ def dashboard():
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
-        # Prepare the tuple of columns to be distinctly counted
-        distinct_columns = tuple_(
-            RawData.start_date,
-            RawData.res,
-            RawData.details,
-            RawData.lpn_tag_number,
-            RawData.end_date,
-            RawData.trip_cost
-        )
-
-        # Use the distinct directly within the count function
+        # Use the distinct directly within the count function and properly handling distinct tuple
         stmt = select([
-            func.count(distinct(distinct_columns)).label('unique_toll_count')
+            func.count(distinct(
+                cast(RawData.start_date, Date),
+                RawData.res,
+                RawData.details,
+                RawData.lpn_tag_number,
+                cast(RawData.end_date, Date),
+                RawData.trip_cost
+            )).label('unique_toll_count')
         ]).where(
             and_(
                 cast(RawData.start_date, Date).between(start_date, end_date),
@@ -830,7 +827,6 @@ def fetch_tolls_data(start_date, end_date):
         return [{'unique_toll_count': row.unique_toll_count} for row in tolls_query]
     finally:
         session.close()
-
 
 def fetch_summary_data_dashboard(start_date, end_date):
     session = Session(bind=db.engine)
