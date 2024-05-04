@@ -33,7 +33,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from sqlalchemy import create_engine, select, func
 from sqlalchemy import cast, Date
-from sqlalchemy import select, func, cast, Date, tuple_, and_, distinct
+from sqlalchemy import select, func, cast, Date, tuple_, and_, distinct, text
 from sqlalchemy import select, func, distinct, and_, cast, Date, tuple_, extract
 #from flask import current_app as app
 
@@ -802,27 +802,33 @@ def dashboard():
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
-        # Use the extract function to group by month and year
-        stmt = select([
-            func.count().label('toll_count'),  # Counting total rows per group
-            extract('month', cast(RawData.start_date, Date)).label('month'),
-            extract('year', cast(RawData.start_date, Date)).label('year')
-        ]).where(
-            and_(
-                cast(RawData.start_date, Date).between(start_date, end_date),
-                RawData.res.isnot(None),
-                RawData.details.isnot(None),
-                RawData.lpn_tag_number.isnot(None),
-                RawData.end_date.isnot(None),
-                RawData.trip_cost.isnot(None)
-            )
-        ).group_by(
-            extract('month', cast(RawData.start_date, Date)),
-            extract('year', cast(RawData.start_date, Date))
-        ).order_by('year', 'month')
+        # Writing a plain SQL query to count unique tolls based on several attributes grouped by month and year
+        sql = """
+        SELECT
+            EXTRACT(MONTH FROM CAST(start_date AS DATE)) AS month,
+            EXTRACT(YEAR FROM CAST(start_date AS DATE)) AS year,
+            COUNT(DISTINCT (start_date, res, details, lpn_tag_number, end_date, trip_cost)) AS unique_toll_count
+        FROM
+            raw_data
+        WHERE
+            CAST(start_date AS DATE) BETWEEN :start_date AND :end_date
+            AND res IS NOT NULL
+            AND details IS NOT NULL
+            AND lpn_tag_number IS NOT NULL
+            AND end_date IS NOT NULL
+            AND trip_cost IS NOT NULL
+        GROUP BY
+            EXTRACT(MONTH FROM CAST(start_date AS DATE)),
+            EXTRACT(YEAR FROM CAST(start_date AS DATE))
+        ORDER BY
+            year, month;
+        """
 
-        tolls_query = session.execute(stmt).fetchall()
-        return [{'month': row['month'], 'year': row['year'], 'toll_count': row['toll_count']} for row in tolls_query]
+        # Execute the SQL query
+        tolls_query = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
+
+        # Format the results into a list of dictionaries
+        return [{'month': int(row['month']), 'year': int(row['year']), 'unique_toll_count': row['unique_toll_count']} for row in tolls_query]
     finally:
         session.close()
 
