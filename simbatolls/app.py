@@ -797,12 +797,13 @@ def search():
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
-    start_date = request.form.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
-    end_date = request.form.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
 
-    # Generate Plotly chart JSON for tolls and summary
     tolls_chart_json = fetch_tolls_data(start_date, end_date)
     
+    if request.method == 'POST':
+        return jsonify(tolls_chart_json=tolls_chart_json)
     return render_template('dashboard.html', tolls_chart_json=tolls_chart_json, start_date=start_date, end_date=end_date)
 
 def fetch_tolls_data(start_date, end_date):
