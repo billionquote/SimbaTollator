@@ -6,20 +6,15 @@
     <title>Dashboard</title>
     <!-- Bootstrap for styling and responsiveness -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <!-- Chart.js for data visualization -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- jQuery for AJAX requests and DOM manipulation -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Plotly.js for data visualization -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
-            padding-top: 65px;  /* Provide space for fixed navbar */
+            padding-top: 65px; /* Provide space for fixed navbar */
         }
         .dashboard-container {
             padding: 20px;
-        }
-        .chart-container {
-            margin-top: 20px;
         }
     </style>
 </head>
@@ -52,61 +47,25 @@
                 <button class="btn btn-primary" onclick="updateCharts()">Update</button>
             </div>
         </div>
-        <div class="chart-container">
-            <canvas id="tollsChart"></canvas>
-            <canvas id="summaryChart"></canvas>
-        </div>
+        <div id="tollsChart"></div>
     </div>
 
     <script>
-        function fetchData() {
+        function updateCharts() {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
-            
-            $.getJSON(`/api/data?start=${startDate}&end=${endDate}`, function(data) {
-                updateChart(window.tollsChart, data.tolls_data, 'Toll Counts Over Time');
-                updateChart(window.summaryChart, data.summary_data, 'Financial Summary Over Time');
-            }).fail(function() {
-                console.error("Error fetching data.");
-            });
+
+            fetch(`/dashboard?start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                Plotly.newPlot('tollsChart', data);
+            })
+            .catch(error => console.error('Error fetching data:', error));
         }
 
-        function updateChart(chart, data, label) {
-            chart.data.labels = data.map(d => d.date);
-            chart.data.datasets.forEach((dataset) => {
-                dataset.label = label;
-                dataset.data = data.map(d => d.value);
-            });
-            chart.update();
-        }
-
-        // Chart.js charts initialization
         document.addEventListener('DOMContentLoaded', function() {
-            const ctx1 = document.getElementById('tollsChart').getContext('2d');
-            const ctx2 = document.getElementById('summaryChart').getContext('2d');
-            window.tollsChart = new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{ label: 'Tolls', data: [] }]
-                },
-                options: { scales: { y: { beginAtZero: true } } }
-            });
-            window.summaryChart = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: [{ label: 'Financials', data: [] }]
-                },
-                options: { scales: { y: { beginAtZero: true } } }
-            });
-
-            fetchData();  // Initial fetch and render
+            updateCharts();  // Initial fetch and render
         });
-
-        function updateCharts() {
-            fetchData();
-        }
     </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>

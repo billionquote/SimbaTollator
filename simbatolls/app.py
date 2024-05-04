@@ -35,6 +35,15 @@ from sqlalchemy import create_engine, select, func
 from sqlalchemy import cast, Date
 from sqlalchemy import select, func, cast, Date, tuple_, and_, distinct, text
 from sqlalchemy import select, func, distinct, and_, cast, Date, tuple_, extract
+import plotly.graph_objs as go
+import json
+from flask import Flask, render_template, jsonify, request
+from flask_login import login_required
+from datetime import datetime, timedelta
+from sqlalchemy import create_engine, text, cast, Date, func
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import select, and_
+import plotly
 #from flask import current_app as app
 
 
@@ -788,21 +797,17 @@ def search():
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
-    # Default dates or dynamic retrieval based on request
     start_date = request.form.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
     end_date = request.form.get('end_date', datetime.now().strftime('%Y-%m-%d'))
 
-    # Fetch data for visualizations
-    tolls_data = fetch_tolls_data(start_date, end_date)
-    summary_data = fetch_summary_data_dashboard(start_date, end_date)
-
-    # You may want to process this data to fit your visualization needs
-    return render_template('dashboard.html', tolls_data=tolls_data, summary_data=summary_data, start_date=start_date, end_date=end_date)
+    # Generate Plotly chart JSON for tolls and summary
+    tolls_chart_json = fetch_tolls_data(start_date, end_date)
+    
+    return render_template('dashboard.html', tolls_chart_json=tolls_chart_json, start_date=start_date, end_date=end_date)
 
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
-        # Writing a plain SQL query to count unique tolls based on several attributes grouped by month and year
         sql = """
         SELECT
             EXTRACT(MONTH FROM CAST(start_date AS DATE)) AS month,
@@ -812,39 +817,18 @@ def fetch_tolls_data(start_date, end_date):
             rawdata
         WHERE
             CAST(start_date AS DATE) BETWEEN :start_date AND :end_date
-            AND res IS NOT NULL
-            AND details IS NOT NULL
-            AND lpn_tag_number IS NOT NULL
-            AND end_date IS NOT NULL
-            AND trip_cost IS NOT NULL
         GROUP BY
             EXTRACT(MONTH FROM CAST(start_date AS DATE)),
             EXTRACT(YEAR FROM CAST(start_date AS DATE))
         ORDER BY
             year, month;
         """
+        result = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
+        months = [f"{row['year']}-{int(row['month']):02d}" for row in result]
+        counts = [row['unique_toll_count'] for row in result]
 
-        # Execute the SQL query
-        tolls_query = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
-
-        # Format the results into a list of dictionaries
-        return [{'month': int(row['month']), 'year': int(row['year']), 'unique_toll_count': row['unique_toll_count']} for row in tolls_query]
-    finally:
-        session.close()
-
-def fetch_summary_data_dashboard(start_date, end_date):
-    session = Session(bind=db.engine)
-    try:
-        summary_query = session.execute(
-            select([
-                Summary.dropoff_date_time,
-                func.sum(Summary.total_toll_contract_cost).label('total_cost'),
-                func.sum(Summary.admin_fee).label('total_admin_fee')
-            ])
-            .where(Summary.dropoff_date_time.between(start_date, end_date))
-            .group_by(Summary.dropoff_date_time)
-        ).fetchall()
-        return [{column: value for column, value in row.items()} for row in summary_query]
+        fig = go.Figure(data=[go.Bar(x=months, y=counts)])
+        return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     finally:
         session.close()
 
