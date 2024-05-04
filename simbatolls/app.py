@@ -33,7 +33,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from sqlalchemy import create_engine, select, func
 from sqlalchemy import cast, Date
-
+from sqlalchemy import select, func, cast, Date
 #from flask import current_app as app
 
 
@@ -801,13 +801,14 @@ def dashboard():
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
+        # Correct the query syntax
         tolls_query = session.execute(
             select([
-                RawData.id, 
-                cast(RawData.start_date, Date).label('start_date'),  # Casting start_date as Date
+                RawData.id,
+                cast(RawData.start_date, Date).label('start_date'),
                 func.count(RawData.id).label('toll_count')
             ]).where(
-                cast(RawData.start_date, Date).between(start_date, end_date)  # Ensure comparison is between date types
+                cast(RawData.start_date, Date).between(start_date, end_date)
             ).group_by(cast(RawData.start_date, Date))
         ).fetchall()
         return [{column: value for column, value in row.items()} for row in tolls_query]
