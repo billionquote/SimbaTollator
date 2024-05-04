@@ -836,7 +836,19 @@ def fetch_tolls_data(start_date, end_date):
         months = [f"{row['year']}-{int(row['month']):02d}" for row in result_dicts]
         counts = [row['unique_toll_count'] for row in result_dicts]
 
-        fig = go.Figure(data=[go.Bar(x=months, y=counts)])
+        fig = go.Figure(data=[go.Bar(
+            x=months,
+            y=counts,
+            marker_color='#007bff',  # Bootstrap "primary" blue
+            text=counts,
+            textposition='auto'
+        )])
+        fig.update_layout(
+            title='Toll Usage Count',
+            xaxis_title='Month',
+            yaxis_title='Toll Usage Count',
+            plot_bgcolor='white'
+        )
         return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     finally:
         session.close()
