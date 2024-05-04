@@ -4,28 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <!-- Plotly.js for Data Visualization -->
+    <!-- Bootstrap CSS for quick layout and responsiveness -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- Plotly.js for data visualization -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Custom styles -->
     <style>
         body, html {
             height: 100%;
             margin: 0;
         }
-        body {
-            font-family: 'Roboto', sans-serif;
+        .bg-video {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -1;
+        }
+        .container-custom {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .navbar-custom {
-            background-color: #004d99;
+            background-color: #004d99; /* Match the navbar color */
+        }
+        .navbar-custom .navbar-nav .nav-link {
+            color: white;
+        }
+        .navbar-custom .navbar-nav .nav-link:hover,
+        .navbar-custom .navbar-nav .nav-link:focus {
+            color: white;
+            background-color: transparent;
         }
         .dashboard-container {
-            padding-top: 100px; /* Make sure the container is not hidden behind the navbar */
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+        .dashboard-card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+            transition: transform .2s;
+            color: #fff;
+        }
+        .dashboard-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 0px 25px rgba(0, 0, 0, 0.25);
+        }
+        #mainNavbar {
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,.1);
+            background-color: #283890; /* Ensures background color is applied */
         }
     </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <a class="navbar-brand" href="#">Simba Dashboard</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -41,9 +81,7 @@
             </ul>
         </div>
     </nav>
-
     <div class="container dashboard-container">
-        <h2>Interactive Dashboard</h2>
         <div class="row">
             <div class="col-12">
                 <label for="start_date">Start Date:</label>
@@ -53,26 +91,41 @@
                 <button class="btn btn-primary" onclick="updateCharts()">Update</button>
             </div>
         </div>
-        <div id="tollsChart"></div>
+        <div id="tollsChart" style="width:100%; height:500px;"></div>
     </div>
-
     <script>
         function updateCharts() {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
-
+    
             fetch(`/dashboard/data?start_date=${startDate}&end_date=${endDate}`)
             .then(response => response.json())
             .then(data => {
-                Plotly.newPlot('tollsChart', data);
+                var layout = {
+                    title: 'Toll Usage',
+                    xaxis: {
+                        title: 'Month'
+                    },
+                    yaxis: {
+                        title: 'Toll Usage Count'
+                    },
+                    barmode: 'group',
+                    bargap: 0.15,
+                    bargroupgap: 0.1,
+                    bar: {color: 'blue'},
+                    margin: {t: 30, l: 150, r: 30, b: 50},  // Adjusting margins for better layout
+                };
+    
+                Plotly.newPlot('tollsChart', data, layout);
             })
             .catch(error => console.error('Error fetching data:', error));
         }
-
+    
         document.addEventListener('DOMContentLoaded', function() {
             updateCharts();  // Initial fetch and render
         });
     </script>
+    
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
