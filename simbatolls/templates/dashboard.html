@@ -65,6 +65,7 @@
         </div>
         <div id="tollsChart" style="margin-top: 10px;"></div>
         <div id="adminFeesChart" style="margin-top: 20px;" ></div>
+        <div id="tollFeesActualChart" style="margin-top: 20px;" ></div>
 
     </div>
 
@@ -117,15 +118,39 @@
             })
             .catch(error => console.error('Error fetching data:', error));
         }
+        function updateActualTollFeesChart() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+        
+            fetch(`/dashboard/toll_fees_actual_data?start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                var layout = {
+                    title: 'Admin Fees Usage',
+                    xaxis: { title: 'Month' },
+                    yaxis: { title: 'Total Admin Fees' },
+                    barmode: 'group',
+                    bargap: 0.15,
+                    bargroupgap: 0.1,
+                    bar: {color: 'blue'},
+                    margin: {t: 30, l: 150, r: 30, b: 50}
+                };
+                Plotly.newPlot('tollFeesActualChart', data, layout);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+        }
+        //toll_fees_actual_data
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('updateButton').addEventListener('click', function() {
                 updateTollsChart();
                 updateAdminFeesChart();
+                updateActualTollFeesChart():
             });
         
             // Initial fetch and render on page load
             updateTollsChart();
             updateAdminFeesChart();
+            updateActualTollFeesChart():
         });
         ;
     </script>

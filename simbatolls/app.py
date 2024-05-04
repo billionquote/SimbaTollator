@@ -819,6 +819,15 @@ def dashboard_data_admin():
     admin_chart_json = fetch_admin_fees_data(start_date, end_date)
     #return tolls_chart_json  # Ensure this returns JSON formatted for Plotly
     return admin_chart_json
+
+@app.route('/dashboard/toll_fees_actual_data', methods=['GET'])
+@login_required
+def dashboard_data_toll():
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    toll_chart_json = fetch_toll_actual_fees_data(start_date, end_date)
+    #return tolls_chart_json  # Ensure this returns JSON formatted for Plotly
+    return toll_chart_json
  
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
@@ -861,7 +870,14 @@ def fetch_tolls_data(start_date, end_date):
         
     finally:
         session.close()
-    
+
+def format_currency(value):
+    if value >= 1000000:  # Value is in millions or more
+        return f"${value / 1000000:.2f}M"
+    elif value >= 1000:  # Value is in thousands or more
+        return f"${value / 1000:.2f}K"
+    else:
+        return f"${value:.2f}"
 def fetch_admin_fees_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
@@ -883,16 +899,16 @@ def fetch_admin_fees_data(start_date, end_date):
         result = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
         months = [f"{row.year}-{int(row.month):02d}" for row in result]
         fees = [row.total_admin_fee for row in result]
-
+        formatted_fees = [format_currency(fee) for fee in fees]  # Apply formatting
         fig = go.Figure(data=[go.Bar(
             x=months,
-            y=fees,
+            y=formatted_fees,
             marker_color='#560BAD',
             text=fees,
             textposition='auto'
         )])
         fig.update_layout(
-            title='Admin Fee Usage',
+            title='Admin Fee',
             xaxis_title='Month',
             yaxis_title='Admin Fee Total',
             plot_bgcolor='white'
@@ -901,7 +917,45 @@ def fetch_admin_fees_data(start_date, end_date):
     finally:
         session.close()
 
-
+#sum_of_toll_cost
+def fetch_toll_actual_fees_data(start_date, end_date):
+    session = Session(bind=db.engine)
+    try:
+        sql = """
+        SELECT
+            EXTRACT(MONTH FROM CAST(dropoff_date_time AS DATE)) AS month,
+            EXTRACT(YEAR FROM CAST(dropoff_date_time AS DATE)) AS year,
+            SUM(sum_of_toll_cost) AS total_toll_fee
+        FROM
+            summary
+        WHERE
+            CAST(dropoff_date_time AS DATE) BETWEEN :start_date AND :end_date
+        GROUP BY
+            EXTRACT(MONTH FROM CAST(dropoff_date_time AS DATE)),
+            EXTRACT(YEAR FROM CAST(dropoff_date_time AS DATE))
+        ORDER BY
+            year, month;
+        """
+        result = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
+        months = [f"{row.year}-{int(row.month):02d}" for row in result]
+        fees = [row.total_admin_fee for row in result]
+        formatted_fees = [format_currency(fee) for fee in fees]  # Apply formatting
+        fig = go.Figure(data=[go.Bar(
+            x=months,
+            y=formatted_fees,
+            marker_color='#7209B7',
+            text=fees,
+            textposition='auto'
+        )])
+        fig.update_layout(
+            title='Actual Toll Fee',
+            xaxis_title='Month',
+            yaxis_title='Admin Fee Total',
+            plot_bgcolor='white'
+        )
+        return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    finally:
+        session.close()
 
 
 if __name__ == '__main__':
