@@ -828,6 +828,13 @@ def dashboard_data_toll_fees_actual():
     toll_chart_json = fetch_toll_actual_fees_data(start_date, end_date)
     return toll_chart_json
 
+@app.route('/dashboard/toll_sum_data', methods=['GET'])
+@login_required
+def dashboard_data_sum_toll_fees():
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    toll_sum_chart_json = fetch_sum_toll_fees_data(start_date, end_date)
+    return toll_sum_chart_json
  
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
@@ -905,14 +912,16 @@ def fetch_admin_fees_data(start_date, end_date):
             x=months,
             y=fees,
             marker_color='#560BAD',
-            text=formatted_fees,
+            text=fees,
             textposition='auto'
         )])
         fig.update_layout(
             title='Admin Fee Usage',
             xaxis_title='Month',
             yaxis_title='Admin Fee Total ($)',
-            plot_bgcolor='white'
+            plot_bgcolor='white', 
+            yaxis_tickprefix = '$', 
+            yaxis_tickformat = ',.'
         )
         return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     finally:
@@ -943,7 +952,7 @@ def fetch_toll_actual_fees_data(start_date, end_date):
         formatted_fees = [format_currency(fee) for fee in fees]  # Apply formatting
         fig = go.Figure(data=[go.Bar(
             x=months,
-            y=formatted_fees,
+            y=fees,
             marker_color='#7209B7',
             text=fees,
             textposition='auto'
@@ -951,12 +960,57 @@ def fetch_toll_actual_fees_data(start_date, end_date):
         fig.update_layout(
             title='Actual Toll Fee',
             xaxis_title='Month',
-            yaxis_title='Admin Fee Total',
-            plot_bgcolor='white'
+            yaxis_title='Toll Actual Fee Total',
+            plot_bgcolor='white',
+            yaxis_tickprefix = '$', 
+            yaxis_tickformat = ',.'
         )
         return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     finally:
         session.close()
+
+#sum_of_toll_cost
+def fetch_sum_toll_fees_data(start_date, end_date):
+    session = Session(bind=db.engine)
+    try:
+        sql = """
+        SELECT
+            EXTRACT(MONTH FROM CAST(dropoff_date_time AS DATE)) AS month,
+            EXTRACT(YEAR FROM CAST(dropoff_date_time AS DATE)) AS year,
+            SUM(total_toll_contract_cost) AS total_toll_fee
+        FROM
+            summary
+        WHERE
+            CAST(dropoff_date_time AS DATE) BETWEEN :start_date AND :end_date
+        GROUP BY
+            EXTRACT(MONTH FROM CAST(dropoff_date_time AS DATE)),
+            EXTRACT(YEAR FROM CAST(dropoff_date_time AS DATE))
+        ORDER BY
+            year, month;
+        """
+        result = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
+        months = [f"{row.year}-{int(row.month):02d}" for row in result]
+        fees = [row.total_toll_fee for row in result]
+        formatted_fees = [format_currency(fee) for fee in fees]  # Apply formatting
+        fig = go.Figure(data=[go.Bar(
+            x=months,
+            y=fees,
+            marker_color='#3A0CA3',
+            text=fees,
+            textposition='auto'
+        )])
+        fig.update_layout(
+            title='Total Toll Contract Cost (Admin fee + Toll fee)',
+            xaxis_title='Month',
+            yaxis_title='Total Toll Contract Cost',
+            plot_bgcolor='white',
+            yaxis_tickprefix = '$', 
+            yaxis_tickformat = ',.'
+        )
+        return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    finally:
+        session.close()
+
 
 
 if __name__ == '__main__':
