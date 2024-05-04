@@ -16,7 +16,7 @@ def cleaner():
             session.begin()
             count_before = session.execute(text("SELECT COUNT(*) FROM rawdata;")).scalar()
             #print("Number of records before deduplication:", count_before)
-            #session.execute(text("DELETE FROM rawdata;"))
+           # session.execute(text("DELETE FROM rawdata;"))
             #print('I HAVE NOW DELETED EVERYTHING')
             
             #session.execute(text("DELETE FROM summary;"))

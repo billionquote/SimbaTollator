@@ -370,21 +370,6 @@ def populate_summary_table():
         'Dropoff Date Time': 'dropoff_date_time',
         'admin_fee': 'admin_fee'
     })
-    for index, row in summary.iterrows():
-        
-        new_summary = Summary(
-                    contract_number=row['contract_number'],
-                    num_of_rows=row['num_of_rows'],
-                    sum_of_toll_cost=row['sum_of_toll_cost'],
-                    pickup_date_time=row['pickup_date_time'],
-                    dropoff_date_time=row['dropoff_date_time'],
-                    admin_fee=row['admin_fee'],
-                    total_toll_contract_cost=row['total_toll_contract_cost']
-                )
-        if row['contract_number'] == 7791:
-            print(f"Contract 7791 - THIS IS IN THE UPPDATE SUMMARY >>>> Pickup DateTime: {row['pickup_date_time']}, Dropoff DateTime: {row['pickup_date_time']}")
-        session.add(new_summary)
-
         
     return summary, grand_total, admin_fee_total
 
@@ -532,7 +517,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 print(f'STARTED DOING Populate summary')
                 cleaner()
                 summary, grand_total, admin_fee_total = populate_summary_table()
-                #update_or_insert_summary(summary)
+                update_or_insert_summary(summary)
                 update_existing_res_values()
                 delete_null_trip_cost_records()
                 print(f'FINISHED DOING Populate summary table')
@@ -588,14 +573,23 @@ def update_or_insert_summary(summary):
             transaction = conn.begin()
             try:
                 for index, row in summary.iterrows():
-                    #print(f'update_or_insert_summary is working: row: {row}')
-                    #print(f'row: {row['admin_fee']}')
                     admin_fee = float(row['admin_fee'].replace('$', '').replace(',', ''))
-                    pickup_date_time = pd.to_datetime(row['pickup_date_time'])
-                    dropoff_date_time = pd.to_datetime(row['dropoff_date_time'])
-                    
+
+                    # Fetch the corresponding date times from rawData table
+                    date_time_query = """
+                    SELECT rd.pickup_date_time, rd.dropoff_date_time
+                    FROM rawData rd
+                    WHERE rd.res = :res
+                    LIMIT 1
+                    """
+                    # Make sure to cast res to string if necessary or ensure it matches the expected data type
+                    date_time_data = conn.execute(text(date_time_query), {'res': str(row['contract_number'])}).fetchone()
+                    if date_time_data:
+                        pickup_date_time = date_time_data[0]
+                        dropoff_date_time = date_time_data[1]
+
                     params = {
-                        'contract_number': int(row['contract_number']),
+                        'contract_number': int(row['contract_number']),  # Assuming this is already an integer
                         'num_of_rows': int(row['num_of_rows']),
                         'sum_of_toll_cost': float(row['sum_of_toll_cost'].replace('$', '').replace(',', '')),
                         'total_toll_contract_cost': float(row['total_toll_contract_cost'].replace('$', '').replace(',', '')),
@@ -603,13 +597,10 @@ def update_or_insert_summary(summary):
                         'dropoff_date_time': dropoff_date_time,
                         'admin_fee': admin_fee
                     }
-                    
-                    #print("SQL Params:", params)  # Debugging output
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
-                    if row['contract_number'] == 7791:
-                        print(f"Contract 7791 - THIS IS IN THE UPPDATE SUMMARY >>>> Pickup DateTime: {pickup_date_time}, Dropoff DateTime: {dropoff_date_time}")
-                    
+                    if row['contract_number']==7791:
+                        print(f'WE ARE IN THE UPDATE FUNCTION AND FOR CONTRACT 7791: the pickupdate date time is {pickup_date_time}')
                     if existing:
                         conn.execute(text("""
                             UPDATE summary SET
@@ -635,7 +626,6 @@ def update_or_insert_summary(summary):
                 raise
     except Exception as e:
         print("Failed to update or insert summary:", e)
-        #traceback2.print_exc()  # This will print stack trace to debug the error
         raise
 
 
