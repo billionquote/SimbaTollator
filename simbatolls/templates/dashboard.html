@@ -126,9 +126,9 @@
             .then(response => response.json())
             .then(data => {
                 var layout = {
-                    title: 'Admin Fees Usage',
+                    title: 'Toll Fees Usage',
                     xaxis: { title: 'Month' },
-                    yaxis: { title: 'Total Admin Fees' },
+                    yaxis: { title: 'Total Fees' },
                     barmode: 'group',
                     bargap: 0.15,
                     bargroupgap: 0.1,
@@ -139,20 +139,19 @@
             })
             .catch(error => console.error('Error fetching data:', error));
         }
-        //toll_fees_actual_data
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('updateButton').addEventListener('click', function() {
                 updateTollsChart();
                 updateAdminFeesChart();
-                updateActualTollFeesChart():
+                updateActualTollFeesChart();  // Removed the stray colon here
             });
-        
+            
             // Initial fetch and render on page load
             updateTollsChart();
             updateAdminFeesChart();
-            updateActualTollFeesChart():
+            updateActualTollFeesChart();  // Removed the stray colon here
         });
-        ;
+        
     </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
