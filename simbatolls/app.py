@@ -805,11 +805,11 @@ def dashboard():
 @app.route('/dashboard/data', methods=['GET'])
 @login_required
 def dashboard_data():
-    # Get dates from query parameters
     start_date = request.args.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
     tolls_chart_json = fetch_tolls_data(start_date, end_date)
-    return tolls_chart_json  # Assuming this returns JSON
+    return tolls_chart_json  # Ensure this returns JSON formatted for Plotly
+
 
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
