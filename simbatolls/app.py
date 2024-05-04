@@ -33,7 +33,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from sqlalchemy import create_engine, select, func
 from sqlalchemy import cast, Date
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func, cast, Date, tuple_, and_
 #from flask import current_app as app
 
 
@@ -802,20 +802,33 @@ def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
         # Building the select statement explicitly
-        stmt = select(
-            RawData.id,
-            cast(RawData.start_date, Date).label('start_date'),
-            func.count(RawData.id).label('toll_count')
-        ).where(
-            cast(RawData.start_date, Date).between(start_date, end_date)
-        ).group_by(
-            cast(RawData.start_date, Date)
+        stmt = select([
+            func.count(distinct(
+                tuple_(
+                    RawData.start_date,
+                    RawData.res,
+                    RawData.details,
+                    RawData.lpn_tag_number,
+                    RawData.end_date,
+                    RawData.trip_cost
+                )
+            )).label('unique_toll_count')
+        ]).where(
+            and_(
+                cast(RawData.start_date, Date).between(start_date, end_date),
+                RawData.res.isnot(None),
+                RawData.details.isnot(None),
+                RawData.lpn_tag_number.isnot(None),
+                RawData.end_date.isnot(None),
+                RawData.trip_cost.isnot(None)
+            )
         )
 
         tolls_query = session.execute(stmt).fetchall()
-        return [{column: value for column, value in row.items()} for row in tolls_query]
+        return [{'unique_toll_count': row.unique_toll_count} for row in tolls_query]
     finally:
         session.close()
+
 
 def fetch_summary_data_dashboard(start_date, end_date):
     session = Session(bind=db.engine)
