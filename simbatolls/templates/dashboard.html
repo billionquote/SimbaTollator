@@ -68,26 +68,30 @@
         function updateCharts() {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
-
+    
             fetch(`/dashboard/data?start_date=${startDate}&end_date=${endDate}`)
             .then(response => response.json())
             .then(data => {
-                Plotly.newPlot('tollsChart', [{
-                    x: data.months,
-                    y: data.counts,
-                    type: 'bar',
-                    marker: {
-                        color: '#007bff' // Bootstrap blue
-                    }
-                }], {
+                var layout = {
                     title: 'Toll Usage',
-                    xaxis: { title: 'Month' },
-                    yaxis: { title: 'Toll Usage Count' }
-                });
+                    xaxis: {
+                        title: 'Month'
+                    },
+                    yaxis: {
+                        title: 'Toll Usage Count'
+                    },
+                    barmode: 'group',
+                    bargap: 0.15,
+                    bargroupgap: 0.1,
+                    bar: {color: 'blue'},
+                    margin: {t: 30, l: 150, r: 30, b: 50},  // Adjusting margins for better layout
+                };
+    
+                Plotly.newPlot('tollsChart', data, layout);
             })
             .catch(error => console.error('Error fetching data:', error));
         }
-
+    
         document.addEventListener('DOMContentLoaded', function() {
             updateCharts();  // Initial fetch and render
         });
