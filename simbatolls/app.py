@@ -34,6 +34,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, select, func
 from sqlalchemy import cast, Date
 from sqlalchemy import select, func, cast, Date, tuple_, and_, distinct
+from sqlalchemy import select, func, distinct, and_, cast, Date, tuple_
 #from flask import current_app as app
 
 
@@ -801,18 +802,19 @@ def dashboard():
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
-        # Building the select statement explicitly
+        # Prepare the tuple of columns to be distinctly counted
+        distinct_columns = tuple_(
+            RawData.start_date,
+            RawData.res,
+            RawData.details,
+            RawData.lpn_tag_number,
+            RawData.end_date,
+            RawData.trip_cost
+        )
+
+        # Use the distinct directly within the count function
         stmt = select([
-            func.count(distinct(
-                tuple_(
-                    RawData.start_date,
-                    RawData.res,
-                    RawData.details,
-                    RawData.lpn_tag_number,
-                    RawData.end_date,
-                    RawData.trip_cost
-                )
-            )).label('unique_toll_count')
+            func.count(distinct(distinct_columns)).label('unique_toll_count')
         ]).where(
             and_(
                 cast(RawData.start_date, Date).between(start_date, end_date),
