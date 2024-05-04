@@ -822,12 +822,12 @@ def dashboard_data_admin():
 
 @app.route('/dashboard/toll_fees_actual_data', methods=['GET'])
 @login_required
-def dashboard_data_toll():
+def dashboard_data_toll_fees_actual():
     start_date = request.args.get('start_date', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
     toll_chart_json = fetch_toll_actual_fees_data(start_date, end_date)
-    #return tolls_chart_json  # Ensure this returns JSON formatted for Plotly
     return toll_chart_json
+
  
 def fetch_tolls_data(start_date, end_date):
     session = Session(bind=db.engine)
@@ -899,18 +899,19 @@ def fetch_admin_fees_data(start_date, end_date):
         result = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
         months = [f"{row.year}-{int(row.month):02d}" for row in result]
         fees = [row.total_admin_fee for row in result]
-        formatted_fees = [format_currency(fee) for fee in fees]  # Apply formatting
+        formatted_fees = [format_currency(fee) for fee in fees]  # Format for display
+        
         fig = go.Figure(data=[go.Bar(
             x=months,
-            y=formatted_fees,
+            y=fees,
             marker_color='#560BAD',
-            text=fees,
+            text=formatted_fees,
             textposition='auto'
         )])
         fig.update_layout(
-            title='Admin Fee',
+            title='Admin Fee Usage',
             xaxis_title='Month',
-            yaxis_title='Admin Fee Total',
+            yaxis_title='Admin Fee Total ($)',
             plot_bgcolor='white'
         )
         return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
@@ -938,7 +939,7 @@ def fetch_toll_actual_fees_data(start_date, end_date):
         """
         result = session.execute(text(sql), {'start_date': start_date, 'end_date': end_date}).fetchall()
         months = [f"{row.year}-{int(row.month):02d}" for row in result]
-        fees = [row.total_admin_fee for row in result]
+        fees = [row.total_toll_fee for row in result]
         formatted_fees = [format_currency(fee) for fee in fees]  # Apply formatting
         fig = go.Figure(data=[go.Bar(
             x=months,

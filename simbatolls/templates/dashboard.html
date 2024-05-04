@@ -93,14 +93,13 @@
                 };
     
                 Plotly.newPlot('tollsChart', data, layout);
-
             })
             .catch(error => console.error('Error fetching data:', error));
         }
         function updateAdminFeesChart() {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
-        
+    
             fetch(`/dashboard/admin_fees_data?start_date=${startDate}&end_date=${endDate}`)
             .then(response => response.json())
             .then(data => {
@@ -121,7 +120,7 @@
         function updateActualTollFeesChart() {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
-        
+    
             fetch(`/dashboard/toll_fees_actual_data?start_date=${startDate}&end_date=${endDate}`)
             .then(response => response.json())
             .then(data => {
@@ -143,16 +142,16 @@
             document.getElementById('updateButton').addEventListener('click', function() {
                 updateTollsChart();
                 updateAdminFeesChart();
-                updateActualTollFeesChart();  // Removed the stray colon here
+                updateActualTollFeesChart();
             });
             
             // Initial fetch and render on page load
             updateTollsChart();
             updateAdminFeesChart();
-            updateActualTollFeesChart();  // Removed the stray colon here
+            updateActualTollFeesChart();
         });
-        
     </script>
+    
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
