@@ -234,7 +234,8 @@ def upload_file():
         rcm_df = rcm_df.drop_duplicates()
     except ValueError:
          print('Could not handle formatting rcm date and time file')
-    
+    #drop duplicates
+    rcm_df.drop_duplicates(inplace=True)
     # Process Toll File
     tolls_df = pd.read_excel(tolls_file)
     tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -248,6 +249,8 @@ def upload_file():
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(float, errors='ignore')
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
     tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
+    #drop duplicates in the table 
+    tolls_df.drop_duplicates(inplace=True)
     # Convert the first 3 rows of each DataFrame to HTML
     rcm_html = rcm_df.head(3).to_html()
     tolls_html = tolls_df.head(3).to_html()
