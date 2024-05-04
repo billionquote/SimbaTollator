@@ -33,7 +33,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from sqlalchemy import create_engine, select, func
 from sqlalchemy import cast, Date
-from sqlalchemy import select, func, cast, Date, tuple_, and_
+from sqlalchemy import select, func, cast, Date, tuple_, and_, distinct
 #from flask import current_app as app
 
 
