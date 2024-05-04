@@ -880,11 +880,12 @@ def fetch_tolls_data(start_date, end_date):
 
 def format_currency(value):
     if value >= 1000000:  # Value is in millions or more
-        return f"${value / 1000000:.2f}M"
+        return f"${int(value / 1000000)}M"
     elif value >= 1000:  # Value is in thousands or more
-        return f"${value / 1000:.2f}K"
+        return f"${int(value / 1000)}K"
     else:
-        return f"${value:.2f}"
+        return f"${int(value)}"
+    
 def fetch_admin_fees_data(start_date, end_date):
     session = Session(bind=db.engine)
     try:
@@ -911,8 +912,8 @@ def fetch_admin_fees_data(start_date, end_date):
         fig = go.Figure(data=[go.Bar(
             x=months,
             y=fees,
-            marker_color='#560BAD',
-            text=fees,
+            marker_color='#F72585',
+            text=formatted_fees,
             textposition='auto'
         )])
         fig.update_layout(
@@ -954,7 +955,7 @@ def fetch_toll_actual_fees_data(start_date, end_date):
             x=months,
             y=fees,
             marker_color='#7209B7',
-            text=fees,
+            text=formatted_fees,
             textposition='auto'
         )])
         fig.update_layout(
@@ -995,8 +996,8 @@ def fetch_sum_toll_fees_data(start_date, end_date):
         fig = go.Figure(data=[go.Bar(
             x=months,
             y=fees,
-            marker_color='#3A0CA3',
-            text=fees,
+            marker_color='#4361EE',
+            text=formatted_fees,
             textposition='auto'
         )])
         fig.update_layout(
