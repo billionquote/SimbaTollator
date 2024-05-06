@@ -235,7 +235,7 @@ def upload_file():
     except ValueError:
          print('Could not handle formatting rcm date and time file')
     #drop duplicates
-    rcm_df.drop_duplicates(inplace=True)
+    rcm_df.drop_duplicates(subset=['Res.', 'Vehicle', 'Pickup Date Time', 'Dropoff Date Time'], inplace=True)
     # Process Toll File
     tolls_df = pd.read_excel(tolls_file)
     tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
