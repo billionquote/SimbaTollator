@@ -39,6 +39,12 @@ celery = "^5.4.0"
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.4"
 
+
+[[tool.poetry.source]]
+name = "fpho"
+url = "https://files.pythonhosted.org"
+priority = "primary"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
