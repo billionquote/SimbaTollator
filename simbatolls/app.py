@@ -238,8 +238,8 @@ def upload_file():
     rcm_df.drop_duplicates(subset=['Res.', 'Vehicle', 'Pickup Date Time', 'Dropoff Date Time'], inplace=True)
     # Process Toll File
     tolls_df = pd.read_excel(tolls_file)
-    tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
-    tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
+    tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date'])
+    tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date'])
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
     #try:
         #tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(int)
