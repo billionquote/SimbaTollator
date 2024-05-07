@@ -268,7 +268,7 @@
                     });
                 }
                 
-                function increaseProgressGradually(jobId, maxTime = 250000) { // maxTime in milliseconds (3 minutes)
+                function increaseProgressGradually(jobId, maxTime = 350000) { // maxTime in milliseconds (3 minutes)
                     let startTime = Date.now();
                     let interval = setInterval(function() {
                         let elapsedTime = Date.now() - startTime;
