@@ -1,5 +1,4 @@
 import os
-import ssl
 import redis
 from rq import Worker, Queue, Connection
 
