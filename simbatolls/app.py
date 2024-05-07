@@ -263,8 +263,8 @@ def upload_file():
     tolls_json = tolls_df.to_json()
 
     # Logging data to ensure it's correct before queuing
-    print(f"RCM JSON: {rcm_json}")
-    print(f"Tolls JSON: {tolls_json}")
+    #print(f"RCM JSON: {rcm_json}")
+    #print(f"Tolls JSON: {tolls_json}")
 
     job = q.enqueue(confirm_upload_task, rcm_json, tolls_json)
 
