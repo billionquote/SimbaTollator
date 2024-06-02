@@ -41,7 +41,7 @@ def cleaner():
                     update,
                     notes,
                     status,
-                    dropoff,
+                    
                     day,
                     dropoff_date,
                     time,
@@ -83,7 +83,7 @@ def cleaner():
                     update,
                     notes,
                     status,
-                    dropoff,
+                   
                     day,
                     dropoff_date,
                     time,
