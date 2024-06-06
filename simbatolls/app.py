@@ -223,9 +223,6 @@ def upload_file():
     rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
     rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
     rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
-    #rcm_df = rcm_df[rcm_df['Status'] == 'Returned']
-    columns_to_null = [ 'Ref.', 'Update', 'Notes', 'Status', 'Dropoff', 'Day', 'Next Rental', 'Daily Rate', 'Rental Value', 'Balance', 'items', 'insurance']
-    rcm_df[columns_to_null] = 'DELETE'
     #try:
         #rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
     #except ValueError:
