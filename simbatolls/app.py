@@ -230,6 +230,9 @@ def upload_file():
     try:
         rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
         rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        rcm_df = rcm_df[rcm_df['Status'] == 'Returned']
+        columns_to_null = ['Ref.', 'Update', 'Notes', 'Status', 'Dropoff', 'Day', 'Next Rental', 'Daily Rate', 'Rental Value', 'Balance', 'items', 'insurance']
+        rcm_df[columns_to_null] = pd.NA
         rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
         rcm_df = rcm_df.drop_duplicates()
     except ValueError:
