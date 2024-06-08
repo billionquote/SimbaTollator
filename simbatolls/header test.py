@@ -32,7 +32,7 @@ rcm_df = rcm_df.rename(columns={rcm_df.columns[0]: '#'})
 col_to_dedup=['Dropoff', 'Ref.','Update', '#', 'Notes', 'Day', '# Days', 'Category', 'Items', 'Insurance', 'Next Rental', 'Rental Value', 'Daily Rate', 'Departure', 'Balance' ]
 rcm_df[col_to_dedup] = rcm_df[col_to_dedup].fillna('PlaceHolder')
 print("After filling NaN values in columns to dedup:")
-rcm_df[col_to_dedup]='A'
+rcm_df[col_to_dedup]=1
 rcm_df = rcm_df.drop_duplicates()
 print("After setting columns to dedup to 'A':")
 print(f'deleting all that does not exist')
