@@ -224,13 +224,19 @@ def upload_file():
     rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
     rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
     # Fill NaN values with an empty string (or any other placeholder if needed)
+    print("Before filling NaN values in 'Status':")
     rcm_df['Status'] = rcm_df['Status'].fillna('PlaceHolder')
     rcm_df['Status'] =  rcm_df['Status'].str.strip().str.upper()
     rcm_df.loc[rcm_df['Status'].str.contains('RETURNED'), 'Status'] = 'RETURNED'
     rcm_df=rcm_df[rcm_df['Status']=='RETURNED']
-    col_to_dedup=['Dropoff', 'Ref.', '#', 'Notes', 'Day', '# Days', 'Category', 'Items', 'Insurance', 'Next Rental', 'Rental Value', 'Daily Rate', 'Departure', 'Balance' ]
+    print("After filling NaN values in 'Status':")
+    print(rcm_df['Status'][0]) 
+    col_to_dedup=['Dropoff', 'Ref.','Update', '#', 'Notes', 'Day', '# Days', 'Category', 'Items', 'Insurance', 'Next Rental', 'Rental Value', 'Daily Rate', 'Departure', 'Balance' ]
+    rcm_df[col_to_dedup] = rcm_df[col_to_dedup].fillna('PlaceHolder')
+    print("After filling NaN values in columns to dedup:")
     rcm_df[col_to_dedup]='A'
     rcm_df = rcm_df.drop_duplicates()
+    print("After setting columns to dedup to 'A':")
     #try:
         #rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
     #except ValueError:
