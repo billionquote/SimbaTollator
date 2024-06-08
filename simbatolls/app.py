@@ -228,10 +228,11 @@ def upload_file():
     rcm_df['Status'] = rcm_df['Status'].fillna('PlaceHolder')
     rcm_df['Status'] =  rcm_df['Status'].str.strip().str.upper()
     print(f'this is before filtering" {rcm_df['Status'][0]}') 
-    rcm_df.loc[rcm_df['Status'].str.contains('RETURNED'), 'Status'] = 'RETURNED'
-    rcm_df=rcm_df[rcm_df['Status']=='RETURNED']
-    print("After filling NaN values in 'Status':")
-    print(rcm_df['Status'][0]) 
+    rcm_df['Status'] = rcm_df['Status'].str.replace(r'\s*RETURNED\s*', 'RETURNED', regex=True)
+    rcm_df['Status'] = rcm_df['Status'].str.strip().str.upper()
+    rcm_df = rcm_df[rcm_df['Status'] == 'RETURNED']
+    print("After filtering 'Status' for 'RETURNED':")
+    print(rcm_df['Status'].iloc[0])
     rcm_df = rcm_df.rename(columns={rcm_df.columns[0]: '#'})
     col_to_dedup=['Dropoff', 'Ref.','Update', '#', 'Notes', 'Day', '# Days', 'Category', 'Items', 'Insurance', 'Next Rental', 'Rental Value', 'Daily Rate', 'Departure', 'Balance' ]
     rcm_df[col_to_dedup] = rcm_df[col_to_dedup].fillna('PlaceHolder')
