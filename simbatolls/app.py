@@ -240,13 +240,18 @@ def upload_file():
     rcm_df[col_to_dedup]='A'
     rcm_df = rcm_df.drop_duplicates()
     print("After setting columns to dedup to 'A':")
+    print(f'deleting all that does not exist')
+    rcm_df.dropna(how='all', inplace=True)
+
     #try:
         #rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
     #except ValueError:
          #print('Could not handle formatting rcm file vehicle column file')
     try:
         rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        print('fixed pick up date time')
         rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        print('fixed drop off date time')
         rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
         rcm_df = rcm_df.drop_duplicates()
     except ValueError:
