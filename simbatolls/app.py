@@ -47,12 +47,21 @@ import plotly
 #from flask import current_app as app
 
 
+#hashlib and hmac are used for generating the signature - Rakesh Shah
+import hashlib
+import hmac
+import aiohttp
+import asyncio
+import requests
+
+
 app = Flask(__name__, template_folder='templates')
 
 app.secret_key = 'your_secret_key'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 # 100MB limit
 
 @app.route('/')
 def home():
@@ -60,8 +69,9 @@ def home():
 #use ful comand for flask upgrade poetry run python -m flask db init 
 
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-database_url =os.getenv('DATABASE_URL')
-#database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
+# database_url =os.getenv('DATABASE_URL')
+database_url ='postgres://u8o7lasmharbq1:p671fb6b9ee7752b360f06d7b5cdc0c781427b938d1e3601862a2aeb6a3ea9b2f@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d99nb7lr00tna7'
+# database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -88,6 +98,7 @@ db = SQLAlchemy(app)
 #celery = make_celery(app)
 #intiialize RQ
 q = Queue(connection=conn)
+
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
 migrate = Migrate(app, db)
 
@@ -159,6 +170,7 @@ class RawData(db.Model):
     pickup_date_time = db.Column(db.String)
     dropoff_date_time = db.Column(db.String)
     rcm_rego = db.Column(db.String)
+    adminfeeamt = db.Column(db.String)
     
     def __repr__(self):
         return f"<RawData id={self.id}>"
@@ -197,74 +209,121 @@ def validate_license():
 @login_required
 def upload_file():
     # Ensure there are files in the request
-    if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
-        return jsonify({'message': 'No file part'}), 400
+    # if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
+    #     return jsonify({'message': 'No file part'}), 400
+    location = request.form.get('location')
+    fromDt = request.form.get('fromDt')
+    fromTime = request.form.get('fromTime')
+    todt = request.form.get('todt')
+    toTime = request.form.get('toTime')
+    adminfeeamt = request.form.get('adminFee')
 
-    rcm_file = request.files['rcmFile']
+    print(location)
+    print(fromDt)
+    print(fromTime)
+    print(todt)
+    print(toTime)
+    print(adminfeeamt)
+
+    # rcm_file = request.files['rcmFile']
     tolls_file = request.files['tollsFile']
 
-    if rcm_file.filename == '' or tolls_file.filename == '':
-        return jsonify({'message': 'No selected file'}), 400
+    # if rcm_file.filename == '' or tolls_file.filename == '':
+    #     return jsonify({'message': 'No selected file'}), 400
 
     # Process RCM File
-    rcm_df = pd.read_excel(rcm_file, header=None)
-    rcm_df.columns=rcm_df.iloc[2]
-    rcm_df=rcm_df.iloc[3:]
-    rcm_df.reset_index(drop=True, inplace=True)
+    # rcm_df = pd.read_excel(rcm_file, header=None)
+    # rcm_df.columns=rcm_df.iloc[2]
+    # rcm_df=rcm_df.iloc[3:]
+    # rcm_df.reset_index(drop=True, inplace=True)
     
-    rcm_df['RCM_Rego'] = rcm_df.apply(
-        lambda row: row['Vehicle'].split(str(row['Pickup']))[0].strip()
-        if pd.notna(row['Pickup']) and pd.notna(row['Vehicle']) and str(row['Pickup']) in str(row['Vehicle'])
-        else str(row['Vehicle']).strip(),
-        axis=1
-    )
-    rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
-    rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
-    rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
-    rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
-    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
-    # Fill NaN values with an empty string (or any other placeholder if needed)
-    # Fill NaN values with an empty string (or any other placeholder if needed)
-    print("Before filling NaN values in 'Status':")
-    rcm_df['Status'] = rcm_df['Status'].fillna('PlaceHolder')
-    rcm_df['Status'] =  rcm_df['Status'].str.strip().str.upper()
-    print(f'this is before filtering" {rcm_df['Status']}') 
-    rcm_df['Status'] = rcm_df['Status'].str.replace(r'.*RETURNED.*', 'RETURNED', regex=True)
-    rcm_df['Status'] = rcm_df['Status'].str.strip().str.upper()
-    print(f"After filtering 'Status' for 'RETURNED': {rcm_df['Status']}")
-    rcm_df = rcm_df[rcm_df['Status'] == 'RETURNED']
-    print("After filtering 'Status' for 'RETURNED':")
-    print(rcm_df['Status'])
-    rcm_df = rcm_df.rename(columns={rcm_df.columns[0]: '#'})
-    col_to_dedup=['Dropoff', 'Ref.','Update', '#', 'Notes', 'Day', '# Days', 'Items', 'Insurance', 'Next Rental', 'Rental Value', 'Daily Rate', 'Departure', 'Balance' ]
-    rcm_df[col_to_dedup] = rcm_df[col_to_dedup].fillna('PlaceHolder')
-    print("After filling NaN values in columns to dedup:")
-    rcm_df[col_to_dedup]=1
-    rcm_df = rcm_df.drop_duplicates()
-    print("After setting columns to dedup to 'A':")
-    print(f'deleting all that does not exist')
-    rcm_df.dropna(how='all', inplace=True)
+    # rcm_df['RCM_Rego'] = rcm_df.apply(
+    #     lambda row: row['Vehicle'].split(str(row['Pickup']))[0].strip()
+    #     if pd.notna(row['Pickup']) and pd.notna(row['Vehicle']) and str(row['Pickup']) in str(row['Vehicle'])
+    #     else str(row['Vehicle']).strip(),
+    #     axis=1
+    # )
+    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
+    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
+    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
+    # rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
+    # rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
+
+    # print("-----------------------------")
+    # # print(rcm_df['Vehicle']);
+    # # Fill NaN values with an empty string (or any other placeholder if needed)
+    # # Fill NaN values with an empty string (or any other placeholder if needed)
+   
+    # print("Before filling NaN values in 'Status':")
+    # rcm_df['Status'] = rcm_df['Status'].fillna('PlaceHolder')
+    # rcm_df['Status'] =  rcm_df['Status'].str.strip().str.upper()
+    # print(f"this is before filtering {rcm_df['Status']}")
+    
+    # rcm_df['Status'] = rcm_df['Status'].str.replace(r'.*RETURNED.*', 'RETURNED', regex=True)
+    # rcm_df['Status'] = rcm_df['Status'].str.strip().str.upper()
+    # print(f"After filtering 'Status' for 'RETURNED': {rcm_df['Status']}")
+    
+    # rcm_df = rcm_df[rcm_df['Status'] == 'RETURNED']
+    # print("After filtering 'Status' for 'RETURNED':")
+    # print(rcm_df['Status'])
+    
+    # rcm_df = rcm_df.rename(columns={rcm_df.columns[0]: '#'})
+    # col_to_dedup=['Dropoff', 'Ref.','Update', '#', 'Notes', 'Day', '# Days', 'Items', 'Insurance', 'Next Rental', 'Rental Value', 'Daily Rate', 'Departure', 'Balance' ]
+    # rcm_df[col_to_dedup] = rcm_df[col_to_dedup].fillna('PlaceHolder')
+    # print("After filling NaN values in columns to dedup:")
+    
+    # rcm_df[col_to_dedup]=1
+    # rcm_df = rcm_df.drop_duplicates()
+    # print("After setting columns to dedup to 'A':")
+    # print(f'deleting all that does not exist')
+    
+    # rcm_df.dropna(how='all', inplace=True)
 
         #try:
             #rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(int)
         #except ValueError:
             #print('Could not handle formatting rcm file vehicle column file')
-    try:
-        rcm_df['Pickup Date'] = pd.to_datetime(rcm_df['Pickup Date'], format='%d/%b/%Y').dt.strftime('%Y-%m-%d')
-        rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
-        print('fixed pick up date time')
-        rcm_df['Dropoff Date'] = pd.to_datetime(rcm_df['Dropoff Date'], format='%d/%b/%Y').dt.strftime('%Y-%m-%d')
-        print(f' my drop off date: {rcm_df['Dropoff Date']}')
-        print('drop off date fixed ')                                       
-        rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
-        print('fixed drop off date time')
-        print(f' my drop off date time : {rcm_df['Dropoff Date Time']}')
-        rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
-        rcm_df = rcm_df.drop_duplicates()
-    except ValueError:
-        print('Could not handle formatting rcm date and time file')
+    # try:
+    #     rcm_df['Pickup Date'] = pd.to_datetime(rcm_df['Pickup Date'], format='%d/%b/%Y').dt.strftime('%Y-%m-%d')
+    #     rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
+    #     print('fixed pick up date time')
+        
+    #     rcm_df['Dropoff Date'] = pd.to_datetime(rcm_df['Dropoff Date'], format='%d/%b/%Y').dt.strftime('%Y-%m-%d')
+    #     print(f" my drop off date: {rcm_df['Dropoff Date']}")
+    #     print('drop off date fixed ')                                       
+        
+    #     rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+    #     print('fixed drop off date time')
+    #     print(f" my drop off date time : {rcm_df['Dropoff Date Time']}")
+        
+    #     rcm_df.drop(['Customer', 'Mobile', 'Daily Rate', 'Rental Value', 'Balance'], inplace=True, axis=1)
+    #     rcm_df = rcm_df.drop_duplicates()
+    # except ValueError:
+    #     print('Could not handle formatting rcm date and time file')
+        
         #drop duplicates
-    rcm_df.drop_duplicates(subset=['Res.', 'Vehicle', 'Pickup Date Time', 'Dropoff Date Time'], inplace=True)
+    # rcm_df.drop_duplicates(subset=['Res.', 'Vehicle', 'Pickup Date Time', 'Dropoff Date Time'], inplace=True)
+    
+    rcm_df = asyncio.run(mainRCM_df(location,fromDt,fromTime,todt,toTime,adminfeeamt))
+    # print(rcm_df)
+
+    # rcm_df['Pickup Date'] = pd.to_datetime(rcm_df['Pickup Date'], format='%d/%b/%Y').dt.strftime('%Y-%m-%d')
+    # rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
+    rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date Time'], format='%d/%m/%Y %I:%M:%S %p')
+    rcm_df['Pickup Date Time'] = rcm_df['Pickup Date Time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    print('fixed pick up date time')
+    
+    # rcm_df['Dropoff Date'] = pd.to_datetime(rcm_df['Dropoff Date'], format='%d/%b/%Y').dt.strftime('%Y-%m-%d')
+    print(f" my drop off date: {rcm_df['Dropoff Date']}")
+    print('drop off date fixed ')                                       
+    
+    # rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date'] + ' ' + rcm_df['Time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+    rcm_df['Dropoff Date Time'] = pd.to_datetime(rcm_df['Dropoff Date Time'], format='%d/%m/%Y %I:%M:%S %p')
+    rcm_df['Dropoff Date Time'] = rcm_df['Dropoff Date Time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    print('fixed drop off date time')
+    print(f" my drop off date time : {rcm_df['Dropoff Date Time']}")
+    
+    print(rcm_df)
     # Process Toll File
     tolls_df = pd.read_excel(tolls_file)
     tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date'], format="%d %b %Y %I:%M%p")
@@ -292,14 +351,27 @@ def upload_file():
     if rcm_df.empty or tolls_df.empty:
         return jsonify({'message': 'Uploaded files are empty'}), 400
 
+    # Define the file path
+    # file_path = 'output.txt'
+    # with open(file_path, 'a') as file:
+    #     file.write(rcm_df.to_json() + '\n')
+
     rcm_json = rcm_df.to_json()
     tolls_json = tolls_df.to_json()
+
+    print("-----------------------------");
+    # print(tolls_json);
+
+    # file_path = 'tolls_json.txt'
+    # with open(file_path, 'a') as file:
+    #     file.write(str(tolls_json))
 
     # Logging data to ensure it's correct before queuing
     #print(f"RCM JSON: {rcm_json}")
     #print(f"Tolls JSON: {tolls_json}")
 
     job = q.enqueue(confirm_upload_task, rcm_json, tolls_json)
+    print(job)
 
     return jsonify({
         'rcmPreview': rcm_df.head(3).to_html(),
@@ -342,7 +414,7 @@ def load_dataframes(rcm_df_path, tolls_df_path):
         return None, None
 
 
-def populate_summary_table():
+def populate_summary_table(adminfeeamt):
     engine = db.engine
     Session = sessionmaker(bind=engine)
     with Session() as session:
@@ -375,10 +447,16 @@ def populate_summary_table():
     # Debug output to see how aggregation results look
     print("Aggregated DataFrame:", summary.head())
 
+    # Convert the entire Series to numeric (handles conversion errors)
+    # df['adminfeeamt'] = pd.to_numeric(df['adminfeeamt'], errors='coerce')
+
+    # Or apply float conversion to each element (if you're sure all values are convertible)
+    adminfeeamt = adminfeeamt.apply(float)
+
     # Calculate grand total and admin fee total
     grand_total = summary['Sum_of_Toll_Cost'].sum()
-    admin_fee_total = (summary['Num_of_Rows'] * 2.95).sum()
-    summary['admin_fee'] = summary['Num_of_Rows'] * 2.95  # This should be a scalar for each group
+    admin_fee_total = (summary['Num_of_Rows'] * adminfeeamt).sum()
+    summary['admin_fee'] = summary['Num_of_Rows'] * adminfeeamt  # This should be a scalar for each group
 
     # Debug output to check the admin_fee column
     print("DataFrame after adding admin_fee:", summary.head())
@@ -420,18 +498,20 @@ def populate_summary_table():
     return summary, grand_total, admin_fee_total
 
 def convert_df_types(df):
+    print(df['Pickup Date Time'])
+    print(df['Dropoff Date Time'])
     # Convert dates to datetime objects if not already
     df['Start Date'] = pd.to_datetime(df['Start Date'])
     df['End Date'] = pd.to_datetime(df['End Date'])
-    df['Pickup Date Time'] = pd.to_datetime(df['Pickup Date Time'])
-    df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
+    # df['Pickup Date Time'] = pd.to_datetime(df['Pickup Date Time'])
+    # df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
 
     # Ensure all other fields are treated as strings or their specific type
     string_fields = ['Details', 'LPN/Tag number', 'Vehicle Class', 'Trip Cost',
                      'Fleet ID', 'Date', 'Rego', 'Res.', 'Ref.', 'Update', 'Notes',
                      'Status', 'Dropoff', 'Day', 'Dropoff Date', 'Time', 'Pickup',
                      'Pickup Date', 'Time_c13', 'Category', 'Vehicle', 'Colour',
-                     'Items', 'Insurance', 'Departure', 'Next Rental', 'RCM_Rego']
+                     'Items', 'Insurance', 'Departure', 'Next Rental', 'RCM_Rego', 'adminfeeamt']
     
     for field in string_fields:
         df[field] = df[field].astype(str)
@@ -443,43 +523,45 @@ def convert_df_types(df):
 
 def create_new_raw_data_record(row):
     # Function to create a new RawData instance from row data
+    # print(row);
     return RawData(
-                start_date=row['Start Date'],
-                details=row['Details'],
-                lpn_tag_number=row['LPN/Tag number'],
-                vehicle_class=row['Vehicle Class'],
-                fleet_id=row['Fleet ID'],
-                end_date=row['End Date'],
-                date=row['Date'],
-                rego=row['Rego'],
-                res=row['Res.'],
-                ref=row['Ref.'],
-                update=row['Update'],
-                notes=row['Notes'],
-                status=row['Status'],
-                dropoff=row['Dropoff'],
-                day=row['Day'],
-                dropoff_date=row['Dropoff Date'],
-                time=row['Time'],
-                pickup=row['Pickup'],
-                pickup_date=row['Pickup Date'],
-                time_c13=row['Time_c13'],
-                num_days=row['# Days'],
-                category=row['Category'],
-                vehicle=row['Vehicle'],
-                trip_cost = row['Trip Cost'],
-                colour=row['Colour'],
-                items=row['Items'],
-                insurance=row['Insurance'],
-                departure=row['Departure'],
-                next_rental=row['Next Rental'],
-                pickup_date_time=row['Pickup Date Time'],
-                dropoff_date_time=row['Dropoff Date Time'],
-                rcm_rego=row['RCM_Rego']
+        start_date=row['Start Date'],
+        details=row['Details'],
+        lpn_tag_number=row['LPN/Tag number'],
+        vehicle_class=row['Vehicle Class'],
+        fleet_id=row['Fleet ID'],
+        end_date=row['End Date'],
+        date=row['Date'],
+        rego=row['Rego'],
+        res=row['Res.'],
+        ref=row['Ref.'],
+        update=row['Update'],
+        notes=row['Notes'],
+        status=row['Status'],
+        dropoff=row['Dropoff'],
+        day=row['Day'],
+        dropoff_date=row['Dropoff Date'],
+        time=row['Time'],
+        pickup=row['Pickup'],
+        pickup_date=row['Pickup Date'],
+        time_c13=row['Time_c13'],
+        num_days=row['# Days'],
+        category=row['Category'],
+        vehicle=row['Vehicle'],
+        trip_cost = row['Trip Cost'],
+        colour=row['Colour'],
+        items=row['Items'],
+        insurance=row['Insurance'],
+        departure=row['Departure'],
+        next_rental=row['Next Rental'],
+        pickup_date_time=row['Pickup Date Time'],
+        dropoff_date_time=row['Dropoff Date Time'],
+        rcm_rego=row['RCM_Rego'],
+        adminfeeamt=row['adminfeeamt']
         # Initialize other fields similarly...
     )
 
-#change approach
+#change approach - Add New Record
 def populate_rawdata_from_df(result_df):
     # Convert DataFrame types
     result_df = convert_df_types(result_df)
@@ -488,6 +570,7 @@ def populate_rawdata_from_df(result_df):
     try:
         for _, row in result_df.iterrows():
             # Always create a new record for each row, regardless of existing 'Res.' values
+            # print(row);
             new_record = create_new_raw_data_record(row)
             db.session.add(new_record)
 
@@ -526,10 +609,9 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
         ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[Vehicle] as VARCHAR)
         WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
     """
-    print(f'MY OUTPUT TO CHECK RCM DATA_RCMMMM: {rcm_df[['Vehicle', 'Pickup Date Time', 'Dropoff Date Time']].head(5)}')
-    print(f'MY OUTPUT TO CHECK TOOOOOLLLLL DATA: {tolls_df[['LPN/Tag number', 'Start Date']].head(5)}')
+    print(f"MY OUTPUT TO CHECK RCM DATA_RCMMMM: {rcm_df[['Vehicle', 'Pickup Date Time', 'Dropoff Date Time']].head(5)}")
+    print(f"MY OUTPUT TO CHECK TOOOOOLLLLL DATA: {tolls_df[['LPN/Tag number', 'Start Date']].head(5)}")
   
-
     result_tag = ps.sqldf(query_tag, locals())
 
     query_rego = """
@@ -562,7 +644,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
                 print(f'STARTED DOING Populate summary')
                 cleaner()
-                summary, grand_total, admin_fee_total = populate_summary_table()
+                summary, grand_total, admin_fee_total = populate_summary_table(result_df['adminfeeamt'])
                 update_or_insert_summary(summary)
                 update_existing_res_values()
                 delete_null_trip_cost_records()
@@ -613,6 +695,7 @@ def job_status(job_id):
 
 
 def update_or_insert_summary(summary):
+    print("update_or_insert_summary");
     try:
         engine = db.engine
         with engine.connect() as conn:
@@ -624,7 +707,7 @@ def update_or_insert_summary(summary):
                     # Fetch the corresponding date times from rawData table
                     date_time_query = """
                     SELECT rd.pickup_date_time, rd.dropoff_date_time
-                    FROM rawData rd
+                    FROM rawdata rd
                     WHERE rd.res = :res
                     LIMIT 1
                     """
@@ -643,6 +726,8 @@ def update_or_insert_summary(summary):
                         'dropoff_date_time': dropoff_date_time,
                         'admin_fee': admin_fee
                     }
+
+                    print(params)
 
                     existing = conn.execute(text("SELECT 1 FROM summary WHERE contract_number = :contract_number"), {'contract_number': params['contract_number']}).scalar()
                     if row['contract_number']==7791:
@@ -665,6 +750,7 @@ def update_or_insert_summary(summary):
                             VALUES (:contract_number, :num_of_rows, :sum_of_toll_cost, :total_toll_contract_cost, 
                                     :pickup_date_time, :dropoff_date_time, :admin_fee)
                         """), params)
+                print("transaction successed!!");
                 transaction.commit()
             except Exception as e:
                 print("Transaction failed:", e)
@@ -1053,3 +1139,242 @@ def fetch_sum_toll_fees_data(start_date, end_date):
 if __name__ == '__main__':
     db.create_all()
     app.run(debug=True)
+
+
+# Export API - Rakesh Shah
+
+# app = Flask(__name__)
+
+# # Configuration variables
+# API_KEY = 'QXVTaW1iYUNhckhpcmU3NTl8YWRtaW5Ac2ltYmFjYXJoaXJlLmNvbS5hdXxPd0psdWhCRA=='
+# SECRET_KEY = 'flEuz6agE7uKhdau3ohpxPqPeDmrFGh7'
+# API_URL = 'https://apis.rentalcarmanager.com/export/ReservationsExport.ashx'
+
+# # Function to generate the signature
+# def generate_signature(secret_key, params):
+#     # Create the string to be signed
+#     message = '&'.join(f"{key}={value}" for key, value in sorted(params.items()))
+
+#     # Create the HMAC-SHA256 signature
+#     signature = hmac.new(secret_key.encode(), message.encode(), hashlib.sha256).hexdigest()
+    
+#     return signature
+
+# # Example endpoint to fetch data from an external API with signature using POST method
+# @app.route('/post-data', methods=['POST'])
+# def post_data():
+#     # Parameters required by the API
+#     params = {
+#         'api_key': API_KEY,
+#         'method': 'repbookingexport',
+#         'lid':'16',
+#         'sd': '20230501-0000',  # Add any additional parameters needed by the API
+#         'ed': '20240702-0000'
+#     }
+
+#     # Generate the signature
+#     params['signature'] = generate_signature(SECRET_KEY, params)
+
+#     print(API_URL)
+#     print(generate_signature(SECRET_KEY, params))
+#     print(params)
+
+#     # Make a POST request to the external API with the parameters
+#     response = requests.post(API_URL, json=params)
+
+#     print(response)
+
+#     # Check if the request was successful
+#     if response.status_code == 200:
+#         # Parse the JSON response
+#         data = response.json()
+#         return jsonify(data)
+#     else:
+#         return jsonify({'error': 'Failed to fetch data'}), response.status_code
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
+
+
+def returns_multiple_records_demo():
+    domain = "https://apis.rentalcarmanager.com/"
+    urlpath = "/export/ReservationsExport.ashx"
+    secure_key = "QXVTaW1iYUNhckhpcmU3NTl8YWRtaW5Ac2ltYmFjYXJoaXJlLmNvbS5hdXxPd0psdWhCRA=="
+    url = f"{urlpath}?key={secure_key}&method=repbookingexport&lid=9&sd=20240801-0000&ed=20240802-0000"
+    # add other parameters here as required
+    shared_secret = "flEuz6agE7uKhdau3ohpxPqPeDmrFGh7"
+    
+    # Hash the url
+    my_hmac = hmac.new(shared_secret.encode('utf-8'), url.encode('utf-8'), hashlib.sha256)
+    hashed_bytes = my_hmac.digest()
+    
+    # Convert the hash to hex
+    str_signature = ''.join(f"{b:02x}" for b in hashed_bytes)
+    
+    headers = {
+        "signature": str_signature
+    }
+    
+    response = requests.get(domain + url, headers=headers)
+    print(domain + url)
+    
+    # Check response
+    # print(response.text)
+    list_records = json.loads(response.text)
+    print("Found Records:", len(list_records))
+
+    # Define the file path
+    file_path = 'output_list_records.txt'
+    with open(file_path, 'a') as file:
+        file.write(str(list_records))
+
+returns_multiple_records_demo()
+
+
+async def fetch(session, url, headers):
+    async with session.get(url,headers=headers) as response:
+        response.raise_for_status()
+        return await response.json()
+
+async def mainRCM_df(location,fromDt,fromTime,todt,toTime,adminfeeamt):
+
+    fromDt = fromDt.replace('-', '')
+    fromTime = fromTime.replace(':', '')
+    todt = todt.replace('-', '')
+    toTime = toTime.replace(':', '')
+
+    print(location)
+    print(fromDt)
+    print(fromTime)
+    print(todt)
+    print(toTime)
+
+    # url1 = 'https://api.example.com/data1'
+    # url2 = 'https://api.example.com/data2'
+
+    domain = "https://apis.rentalcarmanager.com/"
+    urlpath = "/export/ReservationsExport.ashx"
+    secure_key = "QXVTaW1iYUNhckhpcmU3NTl8YWRtaW5Ac2ltYmFjYXJoaXJlLmNvbS5hdXxPd0psdWhCRA=="
+    url1 = f"{urlpath}?key={secure_key}&method=repbookingexport&lid={location}&sd={fromDt}-{fromTime}&ed={todt}-{toTime}"
+    # add other parameters here as required
+    shared_secret = "flEuz6agE7uKhdau3ohpxPqPeDmrFGh7"
+    
+    # Hash the url
+    my_hmac = hmac.new(shared_secret.encode('utf-8'), url1.encode('utf-8'), hashlib.sha256)
+    hashed_bytes = my_hmac.digest()
+    
+    # Convert the hash to hex
+    str_signature = ''.join(f"{b:02x}" for b in hashed_bytes)
+    
+    headers1 = {
+        "signature": str_signature
+    }
+
+    # Second API
+
+    url2 = f"{urlpath}?key={secure_key}&method=vehicle&vid=0&sd=20230801-0000&ed=20240802-0000"
+    # add other parameters here as required
+    shared_secret = "flEuz6agE7uKhdau3ohpxPqPeDmrFGh7"
+    
+    # Hash the url
+    my_hmac = hmac.new(shared_secret.encode('utf-8'), url2.encode('utf-8'), hashlib.sha256)
+    hashed_bytes = my_hmac.digest()
+    
+    # Convert the hash to hex
+    str_signature = ''.join(f"{b:02x}" for b in hashed_bytes)
+    
+    headers2 = {
+        "signature": str_signature
+    }
+    
+    print(url1);
+    print(url2);
+
+    async with aiohttp.ClientSession() as session:
+        # Fetch data from both APIs concurrently
+        data1, data2 = await asyncio.gather(
+            fetch(session, domain + url1, headers1),
+            fetch(session, domain + url2, headers2)
+        )
+
+        # Extract IDs and filter matching ones
+        ids1 = {item['carid'] for item in data1}
+        ids2 = {item['id'] for item in data2}
+        
+        matching_ids = ids1.intersection(ids2)
+        print(len(matching_ids));
+        print(matching_ids);
+        
+        # Additional parameter condition
+        parameter_condition = 'Returned'
+
+         # Define the file path
+        file_path = 'output.txt'
+        with open(file_path, 'a') as file:
+            file.write(str(data1))
+
+         # Define the file path
+        file_path = 'output1.txt'
+        with open(file_path, 'a') as file:
+            file.write(str(data2))
+
+        # Filter and combine the items with matching IDs and the parameter condition
+        combined_data = []
+        for item1 in data1:
+            # if item1['carid'] in matching_ids and item1.get('bookingtype').strip() == parameter_condition:
+            if item1['carid'] in matching_ids and item1.get('bookingtype').strip() in ['Returned', 'Hired']:
+
+                for item2 in data2:
+                    if item1['carid'] == item2['id']:
+                        # combined_item = {**item1, **item2}
+                        PickupDateTime = item1['pickupdatetime'].split(' ')
+                        PickupDate = PickupDateTime[0]
+                        PickupTime = PickupDateTime[1]
+                        DropoffDateTime = item1['dropoffdatetime'].split(' ')
+                        DropoffDate = DropoffDateTime[0]
+                        DropoffTime = DropoffDateTime[1]
+
+                        fleetno = item2['fleetno'].split(' ')
+                        vehicle = fleetno[1]
+
+                        combined_item = {
+                            'Res.': item1['reservationno'],
+                            'Ref.': item1['referenceno'],
+                            'Update': '1',
+                            'Notes': '1',
+                            'Status': item1['bookingtype'].strip(),
+                            'Dropoff': item1['dropofflocation'],
+                            'Day': '1',
+                            'Dropoff Date': DropoffDate,
+                            'Time': DropoffTime,
+                            'Pickup': item1['pickuplocation'],
+                            'Pickup Date': PickupDate,
+                            'Time_c13': PickupTime,
+                            '# Days': '1',
+                            'Category': item1['vehiclecategory'],
+                            'Vehicle': vehicle,
+                            'Colour': 'White',
+                            'Items': '1',
+                            'Insurance': '1',
+                            'Departure': '1',
+                            'Next Rental': '1',
+                            'RCM_Rego': item2['registrationno'],
+                            'Pickup Date Time': item1['pickupdatetime'],
+                            'Dropoff Date Time': item1['dropoffdatetime'],
+                            'CarID': item1['carid'],
+                            'adminfeeamt': adminfeeamt
+                        }
+                        
+                        combined_data.append(combined_item)
+
+        # Print the combined data
+        # print("Combined Data:", combined_data)
+
+        df = pd.DataFrame(combined_data).drop_duplicates(subset=['Res.', 'Vehicle', 'Pickup Date Time', 'Dropoff Date Time'])  
+        print(len(df))
+        df.to_csv("matching_data.csv")
+        df = pd.read_csv('matching_data.csv')
+        newdf = df.fillna(1)
+        newdf.to_csv("matching_data.csv")
+
+        return newdf

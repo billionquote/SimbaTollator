@@ -132,6 +132,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
+<meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
 
 <div class="container-custom">
     <div class="text-center">
@@ -141,18 +146,65 @@
             <input type="password" class="form-control mb-2" id="password" placeholder="Enter Password">
             <button type="button" class="btn btn-primary" onclick="validateLicense()">Log in</button>
         </form>
-        <form id="upload-form" style="display:none;">
-            <div class="form-group row">
-                <label for="rcmFile" class="col-sm-3 col-form-label">RCM File:</label>
-                <div class="col-sm-9">
-                    <input type="file" class="form-control-file" id="rcmFile">
+        <form id="upload-form" class="form-inline" style="display:none;">
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <label for="location">Location:</label>
+                    <!-- <input type="file" class="form-control-file" id="rcmFile"> -->
+                    <select id="location" class="form-control" name="location" required />
+                        <option value="8">Adelaide Airport</option>
+                        <option value="15">Cairns Airport</option>
+                        <option value="9" selected>Sydney Airport</option>
+                        <option value="10">Adelaide Melrose Park</option>
+                        <option value="18">Cairns City</option>
+                        <option value="19">Brisbane Airport</option>
+                    </select>
                 </div>
             </div>
             
-            <div class="form-group row">
-                <label for="tollsFile" class="col-sm-3 col-form-label">Tolls File:</label>
+            <div class="form-group">
                 <div class="col-sm-10">
-                    <input type="file" class="form-control-file" id="tollsFile">
+                    <label for="fromDt">From Date:</label>
+                    <input type="date" class="form-control" id="fromDt" value="2024-08-04" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <label for="fromTime">From Time:</label>
+                    <!-- <input type="file" class="form-control-file" id="rcmFile"> -->
+                    <input type="time" class="form-control" id="fromTime" value="12:00" required />
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <label for="todt">To Date:</label>
+                    <input type="date" class="form-control" id="todt" value="2024-08-05" required />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <label for="toTime">To Time:</label>
+                    <!-- <input type="file" class="form-control-file" id="rcmFile"> -->
+                    <input type="time" class="form-control" id="toTime" value="11:59" required />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <label for="adminFee">Admin Fee($):</label>
+                    <!-- <input type="file" class="form-control-file" id="rcmFile"> -->
+                    <!-- <input type="time" class="form-control" id="adminFee" required /> -->
+                    <input type='number' class="form-control" step='0.01' value='2.95' placeholder='0.00' id="adminFee" required />
+                </div>
+            </div>
+            
+            
+            <div class="form-group">
+                <label for="tollsFile">Tolls File:</label>
+                <div class="col-sm-10">
+                    <input type="file" class="form-control" id="tollsFile" required />
                 </div>
             </div>
             <button type="button" class="btn btn-success" onclick="uploadFiles()">Upload Files</button>
@@ -202,137 +254,151 @@
         }
 
         function updateFileName(inputId) {
-                var input = $('#' + inputId);
-                var filename = input.val().split('\\').pop();
-                $('#' + inputId + 'FileName').text(filename); // Display the filename in the corresponding <small> tag
-            }
+            var input = $('#' + inputId);
+            var filename = input.val().split('\\').pop();
+            $('#' + inputId + 'FileName').text(filename); // Display the filename in the corresponding <small> tag
+        }
         function uploadFiles() {
-                    var rcmFile = $('#rcmFile')[0].files[0];
-                    var tollsFile = $('#tollsFile')[0].files[0];
-                    var formData = new FormData();
-                    formData.append('rcmFile', rcmFile);
-                    formData.append('tollsFile', tollsFile);
+            // var rcmFile = $('#rcmFile')[0].files[0];
+            var location= $('#location').val();
+            var fromDt= $('#fromDt').val();
+            var fromTime= $('#fromTime').val();
+            var todt= $('#todt').val();
+            var toTime= $('#toTime').val();
+            var adminFee= $('#adminFee').val();
+            var location= $('#location').val();
+            var tollsFile = $('#tollsFile')[0].files[0];
+            var formData = new FormData();
+            // formData.append('rcmFile', rcmFile);
+            formData.append('location', location);
+            formData.append('fromDt', fromDt);
+            formData.append('fromTime', fromTime);
+            formData.append('todt', todt);
+            formData.append('toTime', toTime);
+            formData.append('adminFee', adminFee);
+            formData.append('tollsFile', tollsFile);
 
-                    $.ajax({
-                        url: '/upload',
-                        type: 'POST',
-                        data: formData,
-                        contentType: false, 
-                        processData: false,
-                        success: function(response) {
-                            $('#rcmPreview').html(response.rcmPreview);
-                            $('#tollsPreview').html(response.tollsPreview);
-                            $('#upload-form').hide(); // Hide the upload form after files are uploaded
-                            $('#actions').show(); // Show the "Confirm Upload" and "Refresh" buttons
-                        },
-                        error: function(xhr, status, error) {
-                            console.error("File upload failed with error: " + error);
-                        }
-                    });
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                data: formData,
+                contentType: false, 
+                processData: false,
+                success: function(response) {
+                    console.log(response);
+                    $('#rcmPreview').html(response.rcmPreview);
+                    $('#tollsPreview').html(response.tollsPreview);
+                    $('#upload-form').hide(); // Hide the upload form after files are uploaded
+                    $('#actions').show(); // Show the "Confirm Upload" and "Refresh" buttons
+                },
+                error: function(xhr, status, error) {
+                    console.error("File upload failed with error: " + error);
                 }
+            });
+        }
 
-                function startJob() {
-                    var formData = new FormData(document.getElementById('upload-form'));
-                    $.ajax({
-                        url: '/start-job',  // Endpoint to start the job and get job ID
-                        type: 'POST',
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function(response) {
-                            // Assuming response contains the job ID
-                            var jobId = response.job_id;
-                            // Store jobId in an accessible place; for this example, we'll use a data attribute on the button
-                            $('#confirmBtn').data('jobId', jobId);
-                            $('#confirmBtn').show();
-                        },
-                        error: function(xhr, status, error) {
-                            console.error("Start job failed:", error);
-                        }
-                    });
+        function startJob() {
+            var formData = new FormData(document.getElementById('upload-form'));
+            $.ajax({
+                url: '/start-job',  // Endpoint to start the job and get job ID
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    // Assuming response contains the job ID
+                    var jobId = response.job_id;
+                    // Store jobId in an accessible place; for this example, we'll use a data attribute on the button
+                    $('#confirmBtn').data('jobId', jobId);
+                    $('#confirmBtn').show();
+                },
+                error: function(xhr, status, error) {
+                    console.error("Start job failed:", error);
                 }
-                
-                function confirmUpload() {
-                    // Start the upload process and get the job ID
-                    $.ajax({
-                        url: '/confirm-upload',
-                        type: 'POST',
-                        success: function(response) {
-                            $('#progressBar').parent().show();  // Show the progress bar container
-                            $('#progressBar').css('width', '1%').attr('aria-valuenow', 1).text('Starting...');
-                            increaseProgressGradually(response.job_id);  // Start the gradual increase
-                        },
-                        error: function() {
-                            alert('Error: starting the job. Wait for progress bar to finish before going to any other page. Check few contract numbers from the new file to ensure it was uploaded.');
-                        }
-                    });
+            });
+        }
+        
+        function confirmUpload() {
+            // Start the upload process and get the job ID
+            $.ajax({
+                url: '/confirm-upload',
+                type: 'POST',
+                success: function(response) {
+                    $('#progressBar').parent().show();  // Show the progress bar container
+                    $('#progressBar').css('width', '1%').attr('aria-valuenow', 1).text('Starting...');
+                    increaseProgressGradually(response.job_id);  // Start the gradual increase
+                },
+                error: function() {
+                    alert('Error: starting the job. Wait for progress bar to finish before going to any other page. Check few contract numbers from the new file to ensure it was uploaded.');
                 }
-                
-                function increaseProgressGradually(jobId, maxTime = 350000) { // maxTime in milliseconds (3 minutes)
-                    let startTime = Date.now();
-                    let interval = setInterval(function() {
-                        let elapsedTime = Date.now() - startTime;
-                        let progress = (elapsedTime / maxTime) * 100;
-                        progress = Math.min(progress, 99);  // Cap the progress at 99% until confirmed complete
-                
-                        $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress).text(progress.toFixed(0) + '% Processing...');
-                
-                        checkJobStatus(jobId, function(isComplete) {
-                            if (isComplete) {
-                                clearInterval(interval);
-                                $('#progressBar').css('width', '100%').attr('aria-valuenow', 100).text('Upload Complete');
-                                // Display a success message
-                                $('#actions').html('<div class="alert alert-success" role="alert">Upload Complete! Redirecting...</div>');
-                                setTimeout(function() {
-                                    window.location.href = '/summary';  // Redirect to summary page
-                                }, 2000);
-                            }
-                        });
-                    }, 1000); // Update every second
-                }
-                $(document).ready(function() {
-                    $('#confirmBtn').click(function() {
-                        var jobId = $(this).data('jobId'); // Ensure jobId is stored in the button's data-jobId attribute after job start
-                        $(this).hide(); // Hide the button
-                        $('.progress').show(); // Show the progress bar
-                        $('#progressBar').css('width', '1%').attr('aria-valuenow', 1).text('Processing...');
-                        simulateProgress(jobId); // Call this function to simulate progress
-                    });
+            });
+        }
+        
+        function increaseProgressGradually(jobId, maxTime = 350000) { // maxTime in milliseconds (3 minutes)
+            let startTime = Date.now();
+            let interval = setInterval(function() {
+                let elapsedTime = Date.now() - startTime;
+                let progress = (elapsedTime / maxTime) * 100;
+                progress = Math.min(progress, 99);  // Cap the progress at 99% until confirmed complete
+        
+                $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress).text(progress.toFixed(0) + '% Processing...');
+        
+                checkJobStatus(jobId, function(isComplete) {
+                    if (isComplete) {
+                        clearInterval(interval);
+                        $('#progressBar').css('width', '100%').attr('aria-valuenow', 100).text('Upload Complete');
+                        // Display a success message
+                        $('#actions').html('<div class="alert alert-success" role="alert">Upload Complete! Redirecting...</div>');
+                        setTimeout(function() {
+                            window.location.href = '/summary';  // Redirect to summary page
+                        }, 2000);
+                    }
                 });
-            
-                function simulateProgress(jobId) {
-                    var progress = 1;
-                    var interval = setInterval(function() {
-                        if (progress < 100) {
-                            progress++; // Increment progress
-                            $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress);
-                            $('#progressBar').text(progress + '% Processing...');
-                        } else {
-                            clearInterval(interval);
-                            $('#progressBar').text('Complete! Redirecting...');
-                            setTimeout(function() {
-                                window.location.href = '/summary'; // Redirect when complete
-                            }, 2000);
-                        }
-                    }, 1000); // Adjust the interval to fit the 3 minutes total for 100%
+            }, 1000); // Update every second
+        }
+        $(document).ready(function() {
+            $('#confirmBtn').click(function() {
+                var jobId = $(this).data('jobId'); // Ensure jobId is stored in the button's data-jobId attribute after job start
+                $(this).hide(); // Hide the button
+                $('.progress').show(); // Show the progress bar
+                $('#progressBar').css('width', '1%').attr('aria-valuenow', 1).text('Processing...');
+                simulateProgress(jobId); // Call this function to simulate progress
+            });
+        });
+    
+        function simulateProgress(jobId) {
+            var progress = 1;
+            var interval = setInterval(function() {
+                if (progress < 100) {
+                    progress++; // Increment progress
+                    $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress);
+                    $('#progressBar').text(progress + '% Processing...');
+                } else {
+                    clearInterval(interval);
+                    $('#progressBar').text('Complete! Redirecting...');
+                    setTimeout(function() {
+                        window.location.href = '/summary'; // Redirect when complete
+                    }, 2000);
                 }
-                function checkJobStatus(jobId, callback) {
-                    $.ajax({
-                        url: '/job-status/' + jobId,
-                        type: 'GET',
-                        success: function(data) {
-                            if (data.status === 'finished' || data.status === 'failed') {
-                                callback(true);  // Notify the caller to stop the progress
-                            } else {
-                                callback(false);
-                            }
-                        },
-                        error: function() {
-                            console.error('Error checking job status.');
-                            callback(true);  // Assume completion on error to stop interval
-                        }
-                    });
+            }, 1000); // Adjust the interval to fit the 3 minutes total for 100%
+        }
+        function checkJobStatus(jobId, callback) {
+            $.ajax({
+                url: '/job-status/' + jobId,
+                type: 'GET',
+                success: function(data) {
+                    if (data.status === 'finished' || data.status === 'failed') {
+                        callback(true);  // Notify the caller to stop the progress
+                    } else {
+                        callback(false);
+                    }
+                },
+                error: function() {
+                    console.error('Error checking job status.');
+                    callback(true);  // Assume completion on error to stop interval
                 }
+            });
+        }
                 
         
         
