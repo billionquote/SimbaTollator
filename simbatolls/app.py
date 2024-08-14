@@ -1335,7 +1335,14 @@ async def mainRCM_df(location,fromDt,fromTime,todt,toTime,adminfeeamt):
                         DropoffTime = DropoffDateTime[1]
 
                         fleetno = item2['fleetno'].split(' ')
-                        vehicle = fleetno[1]
+                        # vehicle = fleetno[1]
+
+                        if len(fleetno) > 1:
+                            vehicle = fleetno[1]
+                        else:
+                            vehicle = fleetno[0]
+
+                        print(vehicle);
 
                         combined_item = {
                             'Res.': item1['reservationno'],
