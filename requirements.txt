@@ -75,7 +75,8 @@ redis==5.0.4
 requests==2.31.0
 rq==1.16.1
 setuptools==69.2.0
--e git+https://github.com/BardiaAlavi/SimbaTollator.git@2540744452432e3400bf01c5f848e05b587b3205#egg=simbatolls
+# -e git+https://github.com/BardiaAlavi/SimbaTollator.git@2540744452432e3400bf01c5f848e05b587b3205#egg=simbatolls
+-e git+https://github.com/billionquote/SimbaTollator.git
 six==1.16.0
 SQLAlchemy==2.0.29
 stack-data==0.6.3
