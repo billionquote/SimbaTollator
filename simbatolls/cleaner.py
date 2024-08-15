@@ -5,7 +5,7 @@ from io import StringIO
 
 def cleaner():
     # database_url = os.getenv('DATABASE_URL', 'your_hardcoded_database_url')
-    database_url ='postgres://u8o7lasmharbq1:p671fb6b9ee7752b360f06d7b5cdc0c781427b938d1e3601862a2aeb6a3ea9b2f@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d99nb7lr00tna7'
+    database_url ='postgres://uc0bhdfpdneiu3:pe6e0da6fb8b0bbed3d6f7a5a92746f179552c78a947cf3d3b7e1ca62b9d9da99@c11ai4tgvdcf54.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d6e265e9ds5t4e'
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     #database_url='postgresql://u8o7lasmharbq1:p671fb6b9ee7752b360f06d7b5cdc0c781427b938d1e3601862a2aeb6a3ea9b2f@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d99nb7lr00tna7'
@@ -118,7 +118,10 @@ def cleaner():
             print(f"Failed to remove duplicates: {e}")
 def summary_cleaner():
     # database_url = os.getenv('DATABASE_URL', 'your_hardcoded_database_url')
-    database_url ='postgres://u8o7lasmharbq1:p671fb6b9ee7752b360f06d7b5cdc0c781427b938d1e3601862a2aeb6a3ea9b2f@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d99nb7lr00tna7'
+    # database_url ='postgres://u8o7lasmharbq1:p671fb6b9ee7752b360f06d7b5cdc0c781427b938d1e3601862a2aeb6a3ea9b2f@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d99nb7lr00tna7'
+    
+    database_url ='postgres://uc0bhdfpdneiu3:pe6e0da6fb8b0bbed3d6f7a5a92746f179552c78a947cf3d3b7e1ca62b9d9da99@c11ai4tgvdcf54.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d6e265e9ds5t4e'
+    
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     #database_url='postgresql://u8o7lasmharbq1:p671fb6b9ee7752b360f06d7b5cdc0c781427b938d1e3601862a2aeb6a3ea9b2f@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d99nb7lr00tna7'
