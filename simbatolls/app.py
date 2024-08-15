@@ -415,7 +415,7 @@ def load_dataframes(rcm_df_path, tolls_df_path):
         return None, None
 
 
-def populate_summary_table(adminfeeamt):
+def populate_summary_table():
     engine = db.engine
     Session = sessionmaker(bind=engine)
     with Session() as session:
@@ -449,15 +449,15 @@ def populate_summary_table(adminfeeamt):
     print("Aggregated DataFrame:", summary.head())
 
     # Convert the entire Series to numeric (handles conversion errors)
-    # df['adminfeeamt'] = pd.to_numeric(df['adminfeeamt'], errors='coerce')
+    df['adminfeeamt'] = pd.to_numeric(df['adminfeeamt'], errors='coerce')
 
     # Or apply float conversion to each element (if you're sure all values are convertible)
-    adminfeeamt = adminfeeamt.apply(float)
+    # adminfeeamt = adminfeeamt.apply(float)
 
     # Calculate grand total and admin fee total
     grand_total = summary['Sum_of_Toll_Cost'].sum()
-    admin_fee_total = (summary['Num_of_Rows'] * adminfeeamt).sum()
-    summary['admin_fee'] = summary['Num_of_Rows'] * adminfeeamt  # This should be a scalar for each group
+    admin_fee_total = (summary['Num_of_Rows'] * df['adminfeeamt']).sum()
+    summary['admin_fee'] = summary['Num_of_Rows'] * df['adminfeeamt']  # This should be a scalar for each group
 
     # Debug output to check the admin_fee column
     print("DataFrame after adding admin_fee:", summary.head())
@@ -645,7 +645,7 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
                 #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
                 print(f'STARTED DOING Populate summary')
                 cleaner()
-                summary, grand_total, admin_fee_total = populate_summary_table(result_df['adminfeeamt'])
+                summary, grand_total, admin_fee_total = populate_summary_table()
                 update_or_insert_summary(summary)
                 update_existing_res_values()
                 delete_null_trip_cost_records()

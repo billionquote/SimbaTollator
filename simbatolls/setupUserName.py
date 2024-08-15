@@ -51,7 +51,7 @@ def add_user(username, password):
 # Example usage
 # add_user (username, password)
 # updatae the password below from ### to whatever 
-add_user('brisbane@simbacarhire.com.au', 'brisbanetolls88')
+add_user('bz@simbacarhire.com.au', 'bzsimba1368?')
 
 def update_password(username, new_password):
     with app.app_context():
