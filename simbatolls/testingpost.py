@@ -44,7 +44,7 @@ def home():
 
 import os
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-database_url =os.getenv('DATABASE_URL')
+database_url = os.getenv('DATABASE_URL')
 #database_url="postgres://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr"
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)

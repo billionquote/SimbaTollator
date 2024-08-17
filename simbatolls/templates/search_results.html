@@ -294,7 +294,7 @@
         // Function to copy plain text to clipboard
         function copyTextToClipboard(text) {
         console.log(text);
-        text = 'Hello,'+ '\n\n' + 'Thank you for choosing Simba Car Hire.'+ '\n' + 'Please find below the breakdown for the tolls you have utilised during your recent rental;'+ '\n' + 'Please allow 3-10 business for the funds to reflect on your account.'+ '\n\n' +  text;
+        text = 'Hello,'+ '\n\n' + 'Thank you for choosing Simba Car Hire.'+ '\n' + 'Please find below the breakdown for the tolls you have utilised during your recent rental;'+ '\n' + 'Please allow 3-10 business days for the funds to reflect on your account.'+ '\n\n' +  text;
         console.log(text);
         navigator.clipboard.writeText(text).then(function() {
             console.log('Text copied to clipboard');
@@ -352,6 +352,7 @@
     
             // Generate textToCopy with padding for each cell to align columns
             for (const row of table.rows) {
+                console.log(row);
                 let rowData = Array.from(row.cells).map((cell, index) => 
                     formatDateTime(cell.innerText).padEnd(columnWidths[index], ' ')
                 );
