@@ -354,8 +354,9 @@
             for (const row of table.rows) {
                 console.log(row);
                 let rowData = Array.from(row.cells).map((cell, index) => 
-                    formatDateTime(cell.innerText).padEnd(columnWidths[index], ' ')
+                    cell.innerText.padEnd(columnWidths[index], ' ')
                 );
+                console.log(rowData)
                 textToCopy += rowData.join('   ') + '\n'; // Adjust spacing as needed
             }
     
