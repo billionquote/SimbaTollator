@@ -28,8 +28,7 @@ def cleaner():
             session.execute(text("""
                 CREATE TEMPORARY TABLE temp_rawdata AS 
                 SELECT 
-                    distinct 
-                    "# Days",
+                    distinct ON( "# Days",
                     start_date,
                     details,
                     lpn_tag_number,
@@ -43,10 +42,8 @@ def cleaner():
                     ref,
                     update,
                     notes,
-                    
                     dropoff,
                     day,
-                    
                     pickup,
                     pickup_date,
                     time_c13,
@@ -58,7 +55,38 @@ def cleaner():
                     departure,
                     next_rental,
                     pickup_date_time,
-                    
+                    rcm_rego,
+                    adminfeeamt)  "# Days",
+                    start_date,
+                    details,
+                    lpn_tag_number,
+                    vehicle_class,
+                    trip_cost,
+                    fleet_id,
+                    end_date,
+                    date,
+                    rego,
+                    res,
+                    ref,
+                    update,
+                    notes,
+                    status,
+                    dropoff,
+                    day,
+                    dropoff_date,
+                    time,
+                    pickup,
+                    pickup_date,
+                    time_c13,
+                    category,
+                    vehicle,
+                    colour,
+                    items,
+                    insurance,
+                    departure,
+                    next_rental,
+                    pickup_date_time,
+                    dropoff_date_time,
                     rcm_rego,
                     adminfeeamt
                 FROM rawData
@@ -85,8 +113,11 @@ def cleaner():
                     ref,
                     update,
                     notes,
+                    status,
                     dropoff,
                     day,
+                    dropoff_date,
+                    time,
                     pickup,
                     pickup_date,
                     time_c13,
@@ -98,6 +129,7 @@ def cleaner():
                     departure,
                     next_rental,
                     pickup_date_time,
+                    dropoff_date_time,
                     rcm_rego,
                     adminfeeamt
                 FROM temp_rawdata;
