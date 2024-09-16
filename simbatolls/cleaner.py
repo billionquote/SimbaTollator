@@ -31,7 +31,7 @@ def cleaner():
                     distinct ON( "# Days",
                     start_date,
                     details,
-                    lpn_tag_number,
+                    CAST(lpn_tag_number AS NUMERIC),
                     vehicle_class,
                     trip_cost,
                     fleet_id,
