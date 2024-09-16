@@ -115,7 +115,6 @@ def cleaner():
                     ref,
                     update,
                     notes,
-                    status,
                     dropoff,
                     day,
                     pickup,
