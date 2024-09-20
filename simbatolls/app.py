@@ -69,9 +69,9 @@ def home():
 #use ful comand for flask upgrade poetry run python -m flask db init 
 
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-database_url =os.getenv('DATABASE_URL')
+# database_url =os.getenv('DATABASE_URL')
 
-# database_url ='postgres://u8o7lasmharbq1:p671fb6b9ee7752b360f06d7b5cdc0c781427b938d1e3601862a2aeb6a3ea9b2f@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d99nb7lr00tna7'
+database_url ='postgres://u4e56pe3nc6s5d:p760834971c3619176a981cb76e2e8e2c353b9dd3fbb9572a75b3679d28e7bf99@c27sl642d0a2n4.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d481i3se1451l2'
 # database_url ='postgres://uc0bhdfpdneiu3:pe6e0da6fb8b0bbed3d6f7a5a92746f179552c78a947cf3d3b7e1ca62b9d9da99@c11ai4tgvdcf54.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d6e265e9ds5t4e'
 # database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
 if database_url.startswith("postgres://"):
@@ -324,6 +324,18 @@ def upload_file():
     rcm_df['Dropoff Date Time'] = rcm_df['Dropoff Date Time'].dt.strftime('%Y-%m-%d %H:%M:%S')
     print('fixed drop off date time')
     print(f" my drop off date time : {rcm_df['Dropoff Date Time']}")
+
+    # rcm_df['RCM_Rego'] = rcm_df.apply(
+    #     lambda row: row['Vehicle'].split(str(row['Pickup']))[0].strip()
+    #     if pd.notna(row['Pickup']) and pd.notna(row['Vehicle']) and str(row['Pickup']) in str(row['Vehicle'])
+    #     else str(row['Vehicle']).strip(),
+    #     axis=1
+    # )
+    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
+    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
+    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
+    # rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
+    # rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
     
     print(rcm_df)
     # Process Toll File
@@ -342,6 +354,8 @@ def upload_file():
     tolls_df = tolls_df.drop_duplicates()
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(float, errors='ignore')
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
+
+    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str).str.lstrip('0')
     tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
     #drop duplicates in the table 
     tolls_df.drop_duplicates(inplace=True)
@@ -371,6 +385,77 @@ def upload_file():
     # Logging data to ensure it's correct before queuing
     #print(f"RCM JSON: {rcm_json}")
     #print(f"Tolls JSON: {tolls_json}")
+
+    # try: 
+    #     rcm_df = pd.read_json(StringIO(rcm_json))
+    #     tolls_df = pd.read_json(StringIO(tolls_json))
+    #     print(f'RCM_DF FROM CONFIRM UPLOAD: {rcm_df.head(3)}')
+    #     print(f'tolls_DF FROM CONFIRM UPLOAD: {tolls_df.head(3)}')
+    # except ValueError as e:
+    #     print("Error parsing JSON data: We are in Confirm_upload_task", e)
+    #     return {'error': 'Invalid JSON data', 'details': str(e)}, 500
+        
+    # if rcm_df.empty or tolls_df.empty:
+    #     print("Debug: DataFrames are empty")
+    #     return {'error': 'DataFrames are empty'}, 400
+    
+    # rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
+    # rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
+    # tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
+
+    # # SQL queries remain the same
+    # query_tag = """
+    #     SELECT DISTINCT * 
+    #     FROM tolls_df
+    #     INNER JOIN rcm_df 
+    #     ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[Vehicle] as VARCHAR)
+    #     WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    # """
+    # print(f"MY OUTPUT TO CHECK RCM DATA_RCMMMM: {rcm_df[['Vehicle', 'Pickup Date Time', 'Dropoff Date Time']].head(5)}")
+    # print(f"MY OUTPUT TO CHECK TOOOOOLLLLL DATA: {tolls_df[['LPN/Tag number', 'Start Date']].head(5)}")
+  
+    # result_tag = ps.sqldf(query_tag, locals())
+
+    # # query_rego = """
+    # #     SELECT DISTINCT * 
+    # #     FROM tolls_df
+    # #     INNER JOIN rcm_df 
+    # #     ON tolls_df.Rego= rcm_df.RCM_Rego
+    # #     WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    # # """
+    # # result_rego = ps.sqldf(query_rego, locals())
+    # print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
+    # # print(f'result Rego_____: {result_rego.head(5)}') 
+    # # if result_rego.empty:
+    # result_df=result_tag
+    # # else:
+    # #     result_df = pd.concat([result_tag, result_rego], ignore_index=True)
+    # print(f'result df_____ HERE: {result_df.head(5)}')
+    # result_df.drop_duplicates(inplace=True)
+
+    # if result_df.empty:
+    #     print("Debug: Resultant DataFrame is empty")
+    #     return {'error': 'Processed data is empty'}, 400
+    # with app.app_context(): 
+    #     try:
+    #         engine = db.engine
+    #         with engine.connect() as conn:
+    #             print(f'STARTED DOING CREATE OR UPDATE TABLE')
+    #             populate_rawdata_from_df(result_df)
+    #             print(f'FINISHED DOING CREATE OR UPDATE TABLE')
+    #             #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
+    #             print(f'STARTED DOING Populate summary')
+    #             cleaner()
+    #             summary, grand_total, admin_fee_total = populate_summary_table()
+    #             update_or_insert_summary(summary)
+    #             update_existing_res_values()
+    #             delete_null_trip_cost_records()
+    #             print(f'FINISHED DOING Populate summary table')
+    #             summary_cleaner()
+                
+    #     except Exception as e:
+    #         print(f"Debug: Exception in database operations - {e}")
+    #         return {'error': 'Database operation failed', 'details': str(e)}, 500
 
     job = q.enqueue(confirm_upload_task, rcm_json, tolls_json)
     print(job)
@@ -509,8 +594,14 @@ def convert_df_types(df):
     # df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
 
     # Ensure all other fields are treated as strings or their specific type
+    # string_fields = ['Details', 'LPN/Tag number', 'Vehicle Class', 'Trip Cost',
+    #                  'Fleet ID', 'Date', 'Rego', 'Res.', 'Ref.', 'Update', 'Notes',
+    #                  'Status', 'Dropoff', 'Day', 'Dropoff Date', 'Time', 'Pickup',
+    #                  'Pickup Date', 'Time_c13', 'Category', 'Vehicle', 'Colour',
+    #                  'Items', 'Insurance', 'Departure', 'Next Rental', 'RCM_Rego', 'adminfeeamt']
+    
     string_fields = ['Details', 'LPN/Tag number', 'Vehicle Class', 'Trip Cost',
-                     'Fleet ID', 'Date', 'Rego', 'Res.', 'Ref.', 'Update', 'Notes',
+                     'Fleet ID', 'Res.', 'Ref.', 'Update', 'Notes',
                      'Status', 'Dropoff', 'Day', 'Dropoff Date', 'Time', 'Pickup',
                      'Pickup Date', 'Time_c13', 'Category', 'Vehicle', 'Colour',
                      'Items', 'Insurance', 'Departure', 'Next Rental', 'RCM_Rego', 'adminfeeamt']
@@ -533,8 +624,8 @@ def create_new_raw_data_record(row):
         vehicle_class=row['Vehicle Class'],
         fleet_id=row['Fleet ID'],
         end_date=row['End Date'],
-        date=row['Date'],
-        rego=row['Rego'],
+        # date=row['Date'],
+        rego=row['RCM_Rego'],
         res=row['Res.'],
         ref=row['Ref.'],
         update=row['Update'],
@@ -616,20 +707,20 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
   
     result_tag = ps.sqldf(query_tag, locals())
 
-    query_rego = """
-        SELECT DISTINCT * 
-        FROM tolls_df
-        INNER JOIN rcm_df 
-        ON tolls_df.Rego= rcm_df.RCM_Rego
-        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
-    """
-    result_rego = ps.sqldf(query_rego, locals())
-    print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
-    print(f'result Rego_____: {result_rego.head(5)}') 
-    if result_rego.empty:
-        result_df=result_tag
-    else:
-        result_df = pd.concat([result_tag, result_rego], ignore_index=True)
+    # query_rego = """
+    #     SELECT DISTINCT * 
+    #     FROM tolls_df
+    #     INNER JOIN rcm_df 
+    #     ON tolls_df.Rego= rcm_df.RCM_Rego
+    #     WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    # """
+    # result_rego = ps.sqldf(query_rego, locals())
+    # print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
+    # print(f'result Rego_____: {result_rego.head(5)}') 
+    # if result_rego.empty:
+    result_df=result_tag
+    # else:
+    #     result_df = pd.concat([result_tag, result_rego], ignore_index=True)
     print(f'result df_____ HERE: {result_df.head(5)}')
     result_df.drop_duplicates(inplace=True)
 
