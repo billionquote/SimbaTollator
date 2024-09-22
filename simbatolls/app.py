@@ -337,6 +337,9 @@ def upload_file():
     tolls_df['End Date'] = tolls_df['End Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
+
+    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str).str.replace(r'\.0$', '', regex=True)
+    
     #try:
         #tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(int)
     #except ValueError:
