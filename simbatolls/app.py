@@ -69,9 +69,9 @@ def home():
 #use ful comand for flask upgrade poetry run python -m flask db init 
 
 # Get the DATABASE_URL, replace "postgres://" with "postgresql://"
-# database_url =os.getenv('DATABASE_URL')
+database_url =os.getenv('DATABASE_URL')
 
-database_url ='postgres://uc0bhdfpdneiu3:p5e86cded25c6249ededeee783d0a3c4c77d689a3a1cc772ac7f415072685e2a9@cbib4a865d7s88.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/dbjuisj2f768p7'
+# database_url ='postgres://u8o7lasmharbq1:p671fb6b9ee7752b360f06d7b5cdc0c781427b938d1e3601862a2aeb6a3ea9b2f@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d99nb7lr00tna7'
 # database_url ='postgres://uc0bhdfpdneiu3:pe6e0da6fb8b0bbed3d6f7a5a92746f179552c78a947cf3d3b7e1ca62b9d9da99@c11ai4tgvdcf54.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d6e265e9ds5t4e'
 # database_url='postgresql://jvkhatepulwmsq:4db6729008abc739d7bfdeefd19c6a6459e38f9b7dbd1b3bda2e95de5eb3d01c@ec2-54-83-138-228.compute-1.amazonaws.com:5432/d33ktsaohkqdr'
 if database_url.startswith("postgres://"):
@@ -249,7 +249,7 @@ def upload_file():
     # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
     # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
     # rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
-    # rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
+    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
 
     # print("-----------------------------")
     # # print(rcm_df['Vehicle']);
@@ -324,18 +324,6 @@ def upload_file():
     rcm_df['Dropoff Date Time'] = rcm_df['Dropoff Date Time'].dt.strftime('%Y-%m-%d %H:%M:%S')
     print('fixed drop off date time')
     print(f" my drop off date time : {rcm_df['Dropoff Date Time']}")
-
-    # rcm_df['RCM_Rego'] = rcm_df.apply(
-    #     lambda row: row['Vehicle'].split(str(row['Pickup']))[0].strip()
-    #     if pd.notna(row['Pickup']) and pd.notna(row['Vehicle']) and str(row['Pickup']) in str(row['Vehicle'])
-    #     else str(row['Vehicle']).strip(),
-    #     axis=1
-    # )
-    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split(' ', n=1).str.get(1)
-    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.split('.').str.get(0)
-    # rcm_df['Vehicle'] = rcm_df['Vehicle'].str.lstrip('0')
-    # rcm_df['Vehicle']= rcm_df['Vehicle'].astype(str)
-    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
     
     print(rcm_df)
     # Process Toll File
@@ -347,9 +335,6 @@ def upload_file():
     tolls_df['End Date'] = tolls_df['End Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-
-    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str).str.replace(r'\.0$', '', regex=True)
-
     #try:
         #tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(int)
     #except ValueError:
