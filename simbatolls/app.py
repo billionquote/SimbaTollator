@@ -339,6 +339,7 @@ def upload_file():
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
 
     tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str).str.lstrip('0')
+    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str).str.replace(r'\.0$', '', regex=True)
     tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
     
     #try:
@@ -349,6 +350,7 @@ def upload_file():
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(float, errors='ignore')
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
     tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
+    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str).str.lstrip('0')
     tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str).str.replace(r'\.0$', '', regex=True)
     #drop duplicates in the table 
     tolls_df.drop_duplicates(inplace=True)
