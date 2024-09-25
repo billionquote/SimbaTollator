@@ -518,8 +518,14 @@ def convert_df_types(df):
     # df['Dropoff Date Time'] = pd.to_datetime(df['Dropoff Date Time'])
 
     # Ensure all other fields are treated as strings or their specific type
+    # string_fields = ['Details', 'LPN/Tag number', 'Vehicle Class', 'Trip Cost',
+    #                  'Fleet ID', 'Date', 'Rego', 'Res.', 'Ref.', 'Update', 'Notes',
+    #                  'Status', 'Dropoff', 'Day', 'Dropoff Date', 'Time', 'Pickup',
+    #                  'Pickup Date', 'Time_c13', 'Category', 'Vehicle', 'Colour',
+    #                  'Items', 'Insurance', 'Departure', 'Next Rental', 'RCM_Rego', 'adminfeeamt']
+    
     string_fields = ['Details', 'LPN/Tag number', 'Vehicle Class', 'Trip Cost',
-                     'Fleet ID', 'Date', 'Rego', 'Res.', 'Ref.', 'Update', 'Notes',
+                     'Fleet ID', 'Res.', 'Ref.', 'Update', 'Notes',
                      'Status', 'Dropoff', 'Day', 'Dropoff Date', 'Time', 'Pickup',
                      'Pickup Date', 'Time_c13', 'Category', 'Vehicle', 'Colour',
                      'Items', 'Insurance', 'Departure', 'Next Rental', 'RCM_Rego', 'adminfeeamt']
@@ -542,8 +548,8 @@ def create_new_raw_data_record(row):
         vehicle_class=row['Vehicle Class'],
         fleet_id=row['Fleet ID'],
         end_date=row['End Date'],
-        date=row['Date'],
-        rego=row['Rego'],
+        # date=row['Date'],
+        rego=row['RCM_Rego'],
         res=row['Res.'],
         ref=row['Ref.'],
         update=row['Update'],
@@ -625,20 +631,20 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
   
     result_tag = ps.sqldf(query_tag, locals())
 
-    query_rego = """
-        SELECT DISTINCT * 
-        FROM tolls_df
-        INNER JOIN rcm_df 
-        ON tolls_df.Rego= rcm_df.RCM_Rego
-        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
-    """
-    result_rego = ps.sqldf(query_rego, locals())
-    print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
-    print(f'result Rego_____: {result_rego.head(5)}') 
-    if result_rego.empty:
-        result_df=result_tag
-    else:
-        result_df = pd.concat([result_tag, result_rego], ignore_index=True)
+    # query_rego = """
+    #     SELECT DISTINCT * 
+    #     FROM tolls_df
+    #     INNER JOIN rcm_df 
+    #     ON tolls_df.Rego= rcm_df.RCM_Rego
+    #     WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    # """
+    # result_rego = ps.sqldf(query_rego, locals())
+    # print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
+    # print(f'result Rego_____: {result_rego.head(5)}') 
+    # if result_rego.empty:
+    result_df=result_tag
+    # else:
+    #     result_df = pd.concat([result_tag, result_rego], ignore_index=True)
     print(f'result df_____ HERE: {result_df.head(5)}')
     result_df.drop_duplicates(inplace=True)
 
