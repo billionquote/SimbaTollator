@@ -325,7 +325,8 @@ def upload_file():
     print('fixed drop off date time')
     print(f" my drop off date time : {rcm_df['Dropoff Date Time']}")
 
-    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
+    rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str).str.lstrip('0')
+    rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
     
     print(rcm_df)
     # Process Toll File
