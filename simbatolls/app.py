@@ -215,13 +215,14 @@ def upload_file():
     #     return jsonify({'message': 'No file part'}), 400
     location = request.form.get('location')
     # fromDt = request.form.get('fromDt')
-    fromDt = '20/09/2024';
+    fromDt = '2024-09-20';
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    fromDt = '30/09/2024';
+    fromDt = '2024-09-30';
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
 
+    print("hello Started!!");
     print(location)
     print(fromDt)
     print(fromTime)
