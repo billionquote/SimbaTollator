@@ -1258,9 +1258,12 @@ async def fetch(session, url, headers):
 
 async def mainRCM_df(location,fromDt,fromTime,todt,toTime,adminfeeamt):
 
-    fromDt = fromDt.replace('-', '')
+    # fromDt = fromDt.replace('-', '')
+    fromDt = '20/09/2024';
     fromTime = fromTime.replace(':', '')
-    todt = todt.replace('-', '')
+    # todt = todt.replace('-', '')
+    todt = '30/09/2024';
+    # todt = todt.replace('-', '')
     toTime = toTime.replace(':', '')
 
     print(location)
