@@ -214,9 +214,11 @@ def upload_file():
     # if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
     #     return jsonify({'message': 'No file part'}), 400
     location = request.form.get('location')
-    fromDt = request.form.get('fromDt')
+    # fromDt = request.form.get('fromDt')
+    fromDt = '20/09/2024';
     fromTime = request.form.get('fromTime')
-    todt = request.form.get('todt')
+    # todt = request.form.get('todt')
+    fromDt = '30/09/2024';
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
 
@@ -1258,11 +1260,11 @@ async def fetch(session, url, headers):
 
 async def mainRCM_df(location,fromDt,fromTime,todt,toTime,adminfeeamt):
 
-    # fromDt = fromDt.replace('-', '')
-    fromDt = '20/09/2024';
+    fromDt = fromDt.replace('-', '')
+    # fromDt = '20/09/2024';
     fromTime = fromTime.replace(':', '')
-    # todt = todt.replace('-', '')
-    todt = '30/09/2024';
+    todt = todt.replace('-', '')
+    # todt = '30/09/2024';
     # todt = todt.replace('-', '')
     toTime = toTime.replace(':', '')
 
