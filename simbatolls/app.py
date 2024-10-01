@@ -44,6 +44,8 @@ from sqlalchemy import create_engine, text, cast, Date, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select, and_
 import plotly
+import datetime
+
 #from flask import current_app as app
 
 
@@ -213,12 +215,31 @@ def upload_file():
     # Ensure there are files in the request
     # if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
     #     return jsonify({'message': 'No file part'}), 400
+    # Get today's date
+    
+    todayDate = datetime.date.today()
+
+    # Subtract 3 days from today's date
+    three_days_back = todayDate - datetime.timedelta(days=3)
+
+    # Format the date as dd/mm/yyyy
+    three_days_back_formatted = three_days_back.strftime("%Y-%m-%d")
+
+    print("Today's Date:", todayDate.strftime("%Y-%m-%d"))
+    print("3 Days Back:", three_days_back_formatted)
+
+    today = datetime.date.today().strftime("%Y-%m-%d")
+
+    print(today);
+
     location = request.form.get('location')
     # fromDt = request.form.get('fromDt')
-    fromDt = '2024-09-20';
+    # fromDt = '2024-09-20';
+    fromDt = three_days_back_formatted;
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    todt = '2024-09-30';
+    # todt = '2024-09-30';
+    todt = today;
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
 
