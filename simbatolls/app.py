@@ -218,7 +218,7 @@ def upload_file():
     fromDt = '2024-09-20';
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    fromDt = '2024-09-30';
+    todt = '2024-09-30';
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
 
