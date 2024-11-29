@@ -44,6 +44,7 @@ from sqlalchemy import create_engine, text, cast, Date, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select, and_
 import plotly
+
 #from flask import current_app as app
 
 
@@ -213,13 +214,35 @@ def upload_file():
     # Ensure there are files in the request
     # if 'rcmFile' not in request.files or 'tollsFile' not in request.files:
     #     return jsonify({'message': 'No file part'}), 400
+    # Get today's date
+    
+    # todayDate = datetime.date.today()
+
+    # # Subtract 3 days from today's date
+    # three_days_back = todayDate - datetime.timedelta(days=3)
+
+    # # Format the date as dd/mm/yyyy
+    # three_days_back_formatted = three_days_back.strftime("%Y-%m-%d")
+
+    # print("Today's Date:", todayDate.strftime("%Y-%m-%d"))
+    # print("3 Days Back:", three_days_back_formatted)
+
+    # today = datetime.date.today().strftime("%Y-%m-%d")
+
+    # print(today);
+
     location = request.form.get('location')
     fromDt = request.form.get('fromDt')
+    # fromDt = '2024-09-20';
+    # fromDt = three_days_back_formatted;
     fromTime = request.form.get('fromTime')
     todt = request.form.get('todt')
+    # todt = '2024-09-30';
+    # todt = today;
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
 
+    print("hello Started!!");
     print(location)
     print(fromDt)
     print(fromTime)
@@ -332,9 +355,11 @@ def upload_file():
     # Process Toll File
     tolls_df = pd.read_excel(tolls_file)
     tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date'], format="%d %b %Y %I:%M%p")
+    # tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date'], format="%d/%m/%Y %H:%M")
     tolls_df['Start Date'] = tolls_df['Start Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['Start Date'] = pd.to_datetime(tolls_df['Start Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date'], format="%d %b %Y %I:%M%p")
+    # tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date'], format="%d/%m/%Y %H:%M")
     tolls_df['End Date'] = tolls_df['End Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['End Date'] = pd.to_datetime(tolls_df['End Date']).dt.strftime('%Y-%m-%d %H:%M:%S')
     tolls_df['Trip Cost'] = tolls_df['Trip Cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
@@ -1257,8 +1282,11 @@ async def fetch(session, url, headers):
 async def mainRCM_df(location,fromDt,fromTime,todt,toTime,adminfeeamt):
 
     fromDt = fromDt.replace('-', '')
+    # fromDt = '20/09/2024';
     fromTime = fromTime.replace(':', '')
     todt = todt.replace('-', '')
+    # todt = '30/09/2024';
+    # todt = todt.replace('-', '')
     toTime = toTime.replace(':', '')
 
     print(location)
