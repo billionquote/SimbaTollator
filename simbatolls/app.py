@@ -407,7 +407,7 @@ def upload_file():
     #print(f"RCM JSON: {rcm_json}")
     #print(f"Tolls JSON: {tolls_json}")
 
-    job = q.enqueue(confirm_upload_task, rcm_json, tolls_json, timeout=600)
+    job = q.enqueue(confirm_upload_task, rcm_json, tolls_json)
     print(job)
 
     return jsonify({
@@ -626,7 +626,7 @@ def populate_rawdata_from_df(result_df):
         raise
 
 # Usage in your application would not change other than ensuring the DataFrame is passed
-def confirm_upload_task(rcm_data_json, tolls_data_json, timeout=600):
+def confirm_upload_task(rcm_data_json, tolls_data_json):
     try: 
         rcm_df = pd.read_json(StringIO(rcm_data_json))
         tolls_df = pd.read_json(StringIO(tolls_data_json))
