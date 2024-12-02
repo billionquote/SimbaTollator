@@ -407,6 +407,77 @@ def upload_file():
     #print(f"RCM JSON: {rcm_json}")
     #print(f"Tolls JSON: {tolls_json}")
 
+    try: 
+        rcm_df = pd.read_json(StringIO(rcm_json))
+        tolls_df = pd.read_json(StringIO(tolls_json))
+        print(f'RCM_DF FROM CONFIRM UPLOAD: {rcm_df.head(3)}')
+        print(f'tolls_DF FROM CONFIRM UPLOAD: {tolls_df.head(3)}')
+    except ValueError as e:
+        print("Error parsing JSON data: We are in Confirm_upload_task", e)
+        return {'error': 'Invalid JSON data', 'details': str(e)}, 500
+        
+    if rcm_df.empty or tolls_df.empty:
+        print("Debug: DataFrames are empty")
+        return {'error': 'DataFrames are empty'}, 400
+    
+    rcm_df['Vehicle'] = rcm_df['Vehicle'].astype(str)
+    rcm_df['Vehicle'] =  rcm_df['Vehicle'].astype(str).str.replace(r'\.0$', '', regex=True)
+    tolls_df['LPN/Tag number'] = tolls_df['LPN/Tag number'].astype(str)
+
+    # SQL queries remain the same
+    query_tag = """
+        SELECT DISTINCT * 
+        FROM tolls_df
+        INNER JOIN rcm_df 
+        ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[Vehicle] as VARCHAR)
+        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    """
+    print(f"MY OUTPUT TO CHECK RCM DATA_RCMMMM: {rcm_df[['Vehicle', 'Pickup Date Time', 'Dropoff Date Time']].head(5)}")
+    print(f"MY OUTPUT TO CHECK TOOOOOLLLLL DATA: {tolls_df[['LPN/Tag number', 'Start Date']].head(5)}")
+  
+    result_tag = ps.sqldf(query_tag, locals())
+
+    # query_rego = """
+    #     SELECT DISTINCT * 
+    #     FROM tolls_df
+    #     INNER JOIN rcm_df 
+    #     ON tolls_df.Rego= rcm_df.RCM_Rego
+    #     WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    # """
+    # result_rego = ps.sqldf(query_rego, locals())
+    # print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
+    # print(f'result Rego_____: {result_rego.head(5)}') 
+    # if result_rego.empty:
+    result_df=result_tag
+    # else:
+    #     result_df = pd.concat([result_tag, result_rego], ignore_index=True)
+    print(f'result df_____ HERE: {result_df.head(5)}')
+    result_df.drop_duplicates(inplace=True)
+
+    if result_df.empty:
+        print("Debug: Resultant DataFrame is empty")
+        return {'error': 'Processed data is empty'}, 400
+    with app.app_context(): 
+        try:
+            engine = db.engine
+            with engine.connect() as conn:
+                print(f'STARTED DOING CREATE OR UPDATE TABLE')
+                populate_rawdata_from_df(result_df)
+                print(f'FINISHED DOING CREATE OR UPDATE TABLE')
+                #result_df.to_sql('rawdata', conn, if_exists='append', index=False, method='multi')
+                print(f'STARTED DOING Populate summary')
+                cleaner()
+                summary, grand_total, admin_fee_total = populate_summary_table()
+                update_or_insert_summary(summary)
+                update_existing_res_values()
+                delete_null_trip_cost_records()
+                print(f'FINISHED DOING Populate summary table')
+                summary_cleaner()
+                
+        except Exception as e:
+            print(f"Debug: Exception in database operations - {e}")
+            return {'error': 'Database operation failed', 'details': str(e)}, 500
+
     job = q.enqueue(confirm_upload_task, rcm_json, tolls_json)
     print(job)
 
