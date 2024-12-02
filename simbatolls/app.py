@@ -407,7 +407,7 @@ def upload_file():
     #print(f"RCM JSON: {rcm_json}")
     #print(f"Tolls JSON: {tolls_json}")
 
-    job = q.enqueue(confirm_upload_task, rcm_json, tolls_json)
+    job = q.enqueue(confirm_upload_task, rcm_json, tolls_json, timeout=600)
     print(job)
 
     return jsonify({
