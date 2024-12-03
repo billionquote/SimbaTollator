@@ -101,7 +101,9 @@ db = SQLAlchemy(app)
 # Initialize Celery
 #celery = make_celery(app)
 #intiialize RQ
-q = Queue(connection=conn)
+
+q = Queue(connection=conn, default_timeout=600)
+
 
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
 migrate = Migrate(app, db)
