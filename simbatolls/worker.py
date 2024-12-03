@@ -12,11 +12,11 @@ redis_url = os.getenv('REDIS_URL');
 # redis_url = os.getenv('REDIS_URL', 'rediss://:p89c57d79ce6bcf8516124c4d0395a90c24c0365da878895369e66284e130061b@ec2-34-226-232-83.compute-1.amazonaws.com:15169')
 # redis_url = os.getenv('REDIS_URL', 'rediss://:p89c57d79ce6bcf8516124c4d0395a90c24c0365da878895369e66284e130061b@ec2-34-236-13-5.compute-1.amazonaws.com:28719')
 
-conn = redis.from_url(redis_url, ssl_cert_reqs=None)
+conn = redis.from_url(redis_url, ssl_cert_reqs=None, socket_timeout=300, socket_connect_timeout=300)
 # conn = Redis(host='localhost', port=6379)
 #conn = redis.from_url(redis_url)
 
 if __name__ == '__main__':
     with Connection(conn):
-        worker = Worker(map(Queue, listen))
+        worker = Worker(map(Queue, listen), default_worker_ttl=600)
         worker.work()
