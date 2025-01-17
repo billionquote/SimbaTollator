@@ -659,20 +659,20 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
   
     result_tag = ps.sqldf(query_tag, locals())
 
-    # query_rego = """
-    #     SELECT DISTINCT * 
-    #     FROM tolls_df
-    #     INNER JOIN rcm_df 
-    #     ON tolls_df.Rego= rcm_df.RCM_Rego
-    #     WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
-    # """
-    # result_rego = ps.sqldf(query_rego, locals())
-    # print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
-    # print(f'result Rego_____: {result_rego.head(5)}') 
-    # if result_rego.empty:
-    result_df=result_tag
-    # else:
-    #     result_df = pd.concat([result_tag, result_rego], ignore_index=True)
+    query_rego = """
+       SELECT DISTINCT * 
+       FROM tolls_df
+       INNER JOIN rcm_df 
+       ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[RCM_Rego] as VARCHAR)
+       WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    """
+    result_rego = ps.sqldf(query_rego, locals())
+    print(f'result tag I AM RESULT TAG: {result_tag.head(5)}') 
+    print(f'result Rego_____: {result_rego.head(5)}') 
+    if result_rego.empty:
+        result_df=result_tag
+    else:
+        result_df = pd.concat([result_tag, result_rego], ignore_index=True)
     print(f'result df_____ HERE: {result_df.head(5)}')
     result_df.drop_duplicates(inplace=True)
 
