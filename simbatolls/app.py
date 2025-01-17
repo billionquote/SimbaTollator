@@ -221,7 +221,7 @@ def upload_file():
     todayDate = datetime.today()
 
     # Subtract 3 days from today's date
-    three_days_back = todayDate - timedelta(days=3)
+    three_days_back = todayDate - timedelta(days=5)
 
     # Format the date as dd/mm/yyyy
     three_days_back_formatted = three_days_back.strftime("%Y-%m-%d")
