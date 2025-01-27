@@ -102,7 +102,7 @@ db = SQLAlchemy(app)
 #celery = make_celery(app)
 #intiialize RQ
 
-q = Queue(connection=conn, default_timeout=1200)
+q = Queue(connection=conn, default_timeout=2200)
 
 
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
