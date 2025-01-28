@@ -242,10 +242,10 @@ def upload_file():
     
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    todt = todayDate - timedelta(days=8)
+    # todt = todayDate - timedelta(days=8)
     
     # commented below line for automation
-    # todt = today;
+    todt = today;
     
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
