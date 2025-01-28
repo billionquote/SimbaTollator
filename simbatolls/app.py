@@ -235,12 +235,18 @@ def upload_file():
 
     location = request.form.get('location')
     # fromDt = request.form.get('fromDt')
-    # fromDt = '2024-09-20';
-    fromDt = three_days_back_formatted;
+    fromDt = '2025-01-21';
+    
+    # commented below line for automation
+    # fromDt = three_days_back_formatted;
+    
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    # todt = '2024-09-30';
-    todt = today;
+    todt = '2025-01-21';
+    
+    # commented below line for automation
+    # todt = today;
+    
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
 
@@ -398,8 +404,10 @@ def upload_file():
     rcm_json = rcm_df.to_json()
     tolls_json = tolls_df.to_json()
 
-    print("-----------------------------");
-    # print(tolls_json);
+    print("-----------rcm_json------------------");
+    print(rcm_json);
+    print("-----------tolls_json------------------");
+    print(tolls_json);
 
     # file_path = 'tolls_json.txt'
     # with open(file_path, 'a') as file:
