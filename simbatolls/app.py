@@ -221,7 +221,7 @@ def upload_file():
     todayDate = datetime.today()
 
     # Subtract 3 days from today's date
-    three_days_back = todayDate - timedelta(days=7)
+    three_days_back = todayDate - timedelta(days=8)
 
     # Format the date as dd/mm/yyyy
     three_days_back_formatted = three_days_back.strftime("%Y-%m-%d")
@@ -235,14 +235,14 @@ def upload_file():
 
     location = request.form.get('location')
     # fromDt = request.form.get('fromDt')
-    fromDt = '2025-01-21';
+    # fromDt = '2025-01-21';
     
     # commented below line for automation
-    # fromDt = three_days_back_formatted;
+    fromDt = three_days_back_formatted;
     
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    todt = '2025-01-21';
+    todt = todayDate - timedelta(days=8)
     
     # commented below line for automation
     # todt = today;
