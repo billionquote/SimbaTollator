@@ -659,11 +659,18 @@ def confirm_upload_task(rcm_data_json, tolls_data_json):
   
     result_tag = ps.sqldf(query_tag, locals())
 
+    # query_rego = """
+    #    SELECT DISTINCT * 
+    #    FROM tolls_df
+    #    INNER JOIN rcm_df 
+    #    ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[RCM_Rego] as VARCHAR)
+    #    WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    # """
     query_rego = """
        SELECT DISTINCT * 
        FROM tolls_df
        INNER JOIN rcm_df 
-       ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = CAST(rcm_df.[RCM_Rego] as VARCHAR)
+       ON tolls_df.[LPN/Tag number] = rcm_df.[RCM_Rego]
        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
     """
     result_rego = ps.sqldf(query_rego, locals())
