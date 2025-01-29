@@ -235,17 +235,17 @@ def upload_file():
 
     location = request.form.get('location')
     # fromDt = request.form.get('fromDt')
-    fromDt = '2025-01-21';
+    # fromDt = '2025-01-21';
     
     # commented below line for automation
-    # fromDt = three_days_back_formatted;
+    fromDt = three_days_back_formatted;
     
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    todt = '2025-01-21';
+    # todt = '2025-01-21';
     
     # commented below line for automation
-    # todt = today;
+    todt = today;
     
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
