@@ -235,17 +235,17 @@ def upload_file():
 
     location = request.form.get('location')
     # fromDt = request.form.get('fromDt')
-    # fromDt = '2025-01-21';
+    fromDt = '2025-01-21';
     
     # commented below line for automation
-    fromDt = three_days_back_formatted;
+    # fromDt = three_days_back_formatted;
     
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    # todt = '2025-01-21';
+    todt = three_days_back.strftime("%Y-%m-%d")
     
     # commented below line for automation
-    todt = today;
+    # todt = today;
     
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
@@ -338,7 +338,7 @@ def upload_file():
     # rcm_df.drop_duplicates(subset=['Res.', 'Vehicle', 'Pickup Date Time', 'Dropoff Date Time'], inplace=True)
     
     rcm_df = asyncio.run(mainRCM_df(location,fromDt,fromTime,todt,toTime,adminfeeamt))
-    # print(rcm_df)
+    print(rcm_df)
 
     # rcm_df['Pickup Date'] = pd.to_datetime(rcm_df['Pickup Date'], format='%d/%b/%Y').dt.strftime('%Y-%m-%d')
     # rcm_df['Pickup Date Time'] = pd.to_datetime(rcm_df['Pickup Date'] + ' ' + rcm_df['Time_c13']).dt.strftime('%Y-%m-%d %H:%M:%S')
