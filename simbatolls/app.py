@@ -235,17 +235,17 @@ def upload_file():
 
     location = request.form.get('location')
     # fromDt = request.form.get('fromDt')
-    # fromDt = '2025-01-21';
+    fromDt = '2025-01-21';
     
     # commented below line for automation
-    fromDt = three_days_back_formatted;
+    # fromDt = three_days_back_formatted;
     
     fromTime = request.form.get('fromTime')
     # todt = request.form.get('todt')
-    # todt = todayDate - timedelta(days=8)
+    todt = '2025-01-21';
     
     # commented below line for automation
-    todt = today;
+    # todt = today;
     
     toTime = request.form.get('toTime')
     adminfeeamt = request.form.get('adminFee')
@@ -408,6 +408,21 @@ def upload_file():
     print(rcm_json);
     print("-----------tolls_json------------------");
     print(tolls_json);
+
+    rcm_df = pd.read_json(StringIO(rcm_json))
+    tolls_df = pd.read_json(StringIO(tolls_json))
+
+    query_rego = """
+        SELECT DISTINCT * 
+        FROM tolls_df
+        INNER JOIN rcm_df 
+        ON CAST(tolls_df.[LPN/Tag number] as VARCHAR) = rcm_df.[RCM_Rego]
+        WHERE tolls_df.[Start Date] BETWEEN rcm_df.[Pickup Date Time] AND rcm_df.[Dropoff Date Time]
+    """
+    result_rego = ps.sqldf(query_rego, locals())
+    print("--------result_rego--------");
+    print(f'result Rego_____: {result_rego}');
+    print("--------end result_rego--------");
 
     # file_path = 'tolls_json.txt'
     # with open(file_path, 'a') as file:
