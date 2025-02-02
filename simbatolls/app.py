@@ -102,7 +102,7 @@ db = SQLAlchemy(app)
 #celery = make_celery(app)
 #intiialize RQ
 
-q = Queue(connection=conn, default_timeout=2200)
+q = Queue(connection=conn, default_timeout=3200)
 
 
 # Assuming 'db' is your SQLAlchemy database instance from 'app.db'
@@ -221,7 +221,7 @@ def upload_file():
     todayDate = datetime.today()
 
     # Subtract 3 days from today's date
-    three_days_back = todayDate - timedelta(days=20)
+    three_days_back = todayDate - timedelta(days=4)
 
     # Format the date as dd/mm/yyyy
     three_days_back_formatted = three_days_back.strftime("%Y-%m-%d")
